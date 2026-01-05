@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// Generator - Ye batata hai Prisma ko ki kaunsi language ka client generate karna hai
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Datasource - Database connection info
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique
+  name          String
+  email         String?   @unique
+  password      String
+  avatar        String?
+  about         String    @default("Hey there! I'm using WhatsApp")
+  isOnline      Boolean   @default(false)
+  lastSeen      DateTime  @default(now())
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Refresh token store (for logout/token rotation)
+  refreshToken  String?
+  
+  // Relations
+  sentMessages  Message[]         @relation("SentMessages")
+  chats         ChatParticipant[]
+
+  @@index([phone])
+  @@index([email])
+}
+
+model Chat {
+  id          String   @id @default(cuid())
+  name        String?
+  isGroup     Boolean  @default(false)
+  avatar      String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id       String   @id @default(cuid())
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+  
+  userId   String
+  chatId   String
+  
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, chatId])
+  @@index([userId])
+  @@index([chatId])
+}
+
+model Message {
+  id          String        @id @default(cuid())
+  content     String?
+  type        MessageType   @default(TEXT)
+  mediaUrl    String?
+  status      MessageStatus @default(SENT)
+  
+  createdAt   DateTime      @default(now())
+  deliveredAt DateTime?
+  readAt      DateTime?
+  
+  senderId    String
+  sender      User          @relation("SentMessages", fields: [senderId], references: [id])
+  
+  chatId      String
+  chat        Chat          @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  replyToId   String?
+  replyTo     Message?      @relation("Replies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies     Message[]     @relation("Replies")
+
+  @@index([chatId, createdAt(sort: Desc)])
+  @@index([senderId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
