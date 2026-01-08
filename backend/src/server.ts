@@ -21,8 +21,6 @@ dotenv.config();
 const app: Express = express();
 const httpServer = createServer(app);
 
-console.log("process.env.CLIENT_URL", process.env.CLIENT_URL);
-
 // Initialize Socket.IO with TypeScript types
 const io = new Server<
   ClientToServerEvents,
