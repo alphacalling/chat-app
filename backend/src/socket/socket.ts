@@ -33,6 +33,12 @@ export function setupSocket(io: TypedServer): void {
     // ============================================
     socket.on("user:connect", async (userId: string) => {
       try {
+        if (!userId || typeof userId !== "string") {
+          console.error("❌ Invalid userId received:", userId);
+          socket.emit("error", { message: "Invalid user ID" });
+          return;
+        }
+
         // Store user mapping
         onlineUsers.set(userId, socket.id);
         socket.data.userId = userId;

@@ -1,19 +1,33 @@
 {
   "compilerOptions": {
+    /* Environment */
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "types": ["node"],
+
+    /* Module system */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+
+    /* Paths */
     "rootDir": "./src",
     "outDir": "./dist",
 
-    "module": "nodenext",
-    "target": "esnext",
+    /* Strictness */
+    "strict": true,
+    "skipLibCheck": true,
 
+    /* Emit */
     "sourceMap": false,
     "declaration": false,
     "declarationMap": false,
 
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true
+    /* Interop (important for Prisma / commonjs deps) */
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

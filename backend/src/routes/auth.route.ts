@@ -22,4 +22,6 @@ router.patch("/me/update-profile", authMiddleware, (req, res) =>
   authController.updateProfile(req, res)
 );
 
+router.get("/auth/users", authMiddleware, (req, res) => authController.searchUsers(req, res));
+
 export default router;

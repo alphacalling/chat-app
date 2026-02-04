@@ -6,12 +6,12 @@ import {
   refreshTokenSchema,
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
+import { prisma } from "../configs/database.js";
 
 export class AuthController {
   //* register user
   async register(req: Request, res: Response): Promise<void> {
     try {
-      // Validate input
       const validationResult = registerSchema.safeParse(req.body);
 
       if (!validationResult.success) {
@@ -23,7 +23,6 @@ export class AuthController {
         return;
       }
 
-      // Register user
       const { user, tokens } = await authService.register(
         validationResult.data
       );
@@ -46,7 +45,6 @@ export class AuthController {
   //* login
   async login(req: Request, res: Response): Promise<void> {
     try {
-      // Validate input
       const validationResult = loginSchema.safeParse(req.body);
 
       if (!validationResult.success) {
@@ -58,7 +56,6 @@ export class AuthController {
         return;
       }
 
-      // Login user
       const { user, tokens } = await authService.login(validationResult.data);
 
       res.status(200).json({
@@ -75,10 +72,70 @@ export class AuthController {
     }
   }
 
-  //* referesh token
+  //* search users
+  async searchUsers(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        } as ApiResponse);
+        return;
+      }
+
+      const { search } = req.query;
+
+      if (!search || typeof search !== "string") {
+        res.status(400).json({
+          success: false,
+          message: "Search query required",
+        } as ApiResponse);
+        return;
+      }
+
+      const users = await prisma.user.findMany({
+        where: {
+          AND: [
+            {
+              id: { not: req.user.id },
+            },
+            {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search } },
+                { email: { contains: search, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          avatar: true,
+          about: true,
+          isOnline: true,
+        },
+        take: 10,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Users found",
+        data: users,
+      } as ApiResponse);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to search users",
+      } as ApiResponse);
+    }
+  }
+
+  //* refresh token
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
-      // Validate input
       const validationResult = refreshTokenSchema.safeParse(req.body);
 
       if (!validationResult.success) {
@@ -89,7 +146,6 @@ export class AuthController {
         return;
       }
 
-      // Refresh tokens
       const tokens = await authService.refreshTokens(
         validationResult.data.refreshToken
       );

@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/auth.route.js";
+import chatRoutes from "./routes/chat.route.js";
 import { setupSocket } from "./socket/socket.js";
 
 import { connectDatabase, disconnectDatabase } from "./configs/database.js";
@@ -50,6 +51,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use("/api", routes);
+app.use("/chat", chatRoutes);
 
 // Health check route
 app.get("/health", (req: Request, res: Response) => {
