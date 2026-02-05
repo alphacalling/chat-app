@@ -23,6 +23,15 @@ export interface ServerToClientEvents {
   "message:read": (data: { messageId: string; readAt: Date }) => void;
   "typing:start": (data: { chatId: string; userId: string }) => void;
   "typing:stop": (data: { chatId: string; userId: string }) => void;
+  "message:deleted": (data: {
+    messageId: string;
+    chatId: string;
+    deletedBy: string;
+  }) => void;
+  "group:created": (data: any) => void;
+  "group:updated": (data: any) => void;
+  "group:user-added": (data: any) => void;
+  "group:user-removed": (data: any) => void;
   error: (error: { message: string }) => void;
 }
 
@@ -39,6 +48,11 @@ export interface ClientToServerEvents {
   "typing:stop": (chatId: string) => void;
   "chat:join": (chatId: string) => void;
   "chat:leave": (chatId: string) => void;
+  "message:delete": (data: { messageId: string; chatId: string }) => void;
+  "group:created": (data: any) => void;
+  "group:updated": (data: any) => void;
+  "group:user-added": (data: any) => void;
+  "group:user-removed": (data: any) => void;
 }
 
 // Message types
@@ -55,6 +69,10 @@ export interface IMessage {
     name: string;
     avatar: string | null;
   };
+  mediaUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
 }
 
 export interface ISendMessage {
@@ -82,6 +100,7 @@ export type SafeUser = Omit<User, "password" | "refreshToken">;
 // Extended Request with user
 export interface AuthRequest extends Request {
   user?: SafeUser;
+  file?: Express.Multer.File;
 }
 
 // Auth DTOs

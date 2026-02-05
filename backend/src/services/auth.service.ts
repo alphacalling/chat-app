@@ -65,7 +65,7 @@ export class AuthService {
   }
 
   // Login user
-  async login(data: LoginDTO): Promise<{ user: SafeUser; tokens: AuthTokens }> {
+  async login(data: LoginDTO & { totpToken?: string }): Promise<{ user: SafeUser; tokens: AuthTokens; requiresTOTP?: boolean }> {
     // Find user by phone
     const user = await prisma.user.findUnique({
       where: { phone: data.phone },
@@ -80,6 +80,26 @@ export class AuthService {
 
     if (!isValid) {
       throw new Error("Invalid phone or password");
+    }
+
+    // Check if TOTP is enabled
+    if (user.totpEnabled) {
+      if (!data.totpToken) {
+        // Return requires TOTP flag
+        const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } = user;
+        return { user: safeUser, tokens: {} as AuthTokens, requiresTOTP: true };
+      }
+
+      // Verify TOTP token
+      const { verifyTOTP, verifyBackupCode } = await import("../utils/totp.js");
+      const totpValid = user.totpSecret && (
+        verifyTOTP(data.totpToken, user.totpSecret) ||
+        (user.totpBackupCodes && verifyBackupCode(data.totpToken, user.totpBackupCodes))
+      );
+
+      if (!totpValid) {
+        throw new Error("Invalid TOTP token");
+      }
     }
 
     // Generate tokens
@@ -99,7 +119,7 @@ export class AuthService {
     });
 
     // Return user without sensitive fields
-    const { password, refreshToken, ...safeUser } = user;
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } = user;
 
     return { user: safeUser, tokens };
   }
@@ -163,11 +183,77 @@ export class AuthService {
     return safeUser;
   }
 
+  // Get another user's profile (public info only)
+  async getUserProfile(userId: string, requesterId: string): Promise<SafeUser> {
+    console.log("🔍🔍🔍 getUserProfile service called");
+    console.log("🔍 userId:", userId);
+    console.log("🔍 requesterId:", requesterId);
+    
+    if (!userId || userId.trim() === "") {
+      console.error("❌ Invalid userId provided:", userId);
+      throw new Error("Invalid user ID");
+    }
+
+    // Don't allow viewing your own profile through this endpoint (use /me/profile instead)
+    if (userId === requesterId) {
+      console.log("⚠️ User trying to view own profile via /user/:userId endpoint");
+      throw new Error("Use /me/profile endpoint to view your own profile");
+    }
+
+    console.log("🔍 Querying database for user:", userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        avatar: true,
+        about: true,
+        gender: true,
+        isOnline: true,
+        lastSeen: true,
+        createdAt: true,
+      },
+    });
+
+    console.log("🔍 User found:", user ? "YES" : "NO");
+    if (user) {
+      console.log("🔍 User name:", user.name);
+    }
+
+    if (!user) {
+      console.error("❌ User not found in database for userId:", userId);
+      throw new Error("User not found");
+    }
+
+    const userWithGender = {
+      ...user,
+      gender: null as string | null,
+    };
+
+    console.log("✅✅✅ User profile retrieved successfully - NO BLOCK CHECK");
+    return userWithGender as SafeUser;
+  }
+
   // Update profile
   async updateProfile(
     userId: string,
-    data: { name?: string; about?: string; avatar?: string }
+    data: { name?: string; about?: string; avatar?: string; gender?: string; email?: string }
   ): Promise<SafeUser> {
+    if (data.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: data.email,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        throw new Error("Email already in use");
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id: userId },
       data,

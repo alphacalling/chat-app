@@ -9,18 +9,24 @@ export async function authMiddleware(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
+    // Get token from httpOnly cookie
+    let token = req.cookies?.accessToken;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Fallback to Authorization header if cookie not found
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
+    }
+
+    if (!token) {
       res.status(401).json({
         success: false,
         message: "Access token required",
       });
       return;
     }
-
-    const token = authHeader.split(" ")[1];
 
     // Verify token
     const payload = verifyAccessToken(token);
@@ -45,8 +51,6 @@ export async function authMiddleware(
       });
       return;
     }
-
-    // Attach user to request (without sensitive fields)
     const { password, refreshToken, ...safeUser } = user;
     req.user = safeUser;
 

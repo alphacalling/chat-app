@@ -17,6 +17,7 @@ model User {
   password String
   avatar   String?
   about    String   @default("Hey there! I'm using WhatsApp")
+  gender   String?
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
@@ -24,9 +25,20 @@ model User {
   updatedAt DateTime @updatedAt
 
   refreshToken String?
+  
+  // TOTP Authentication
+  totpSecret    String?
+  totpEnabled   Boolean  @default(false)
+  totpBackupCodes String?
 
-  sentMessages Message[]         @relation("SentMessages")
-  chats        ChatParticipant[]
+  sentMessages    Message[]         @relation("SentMessages")
+  chats           ChatParticipant[]
+  blockedUsers    BlockedUser[]     @relation("BlockedBy")
+  blockedBy       BlockedUser[]     @relation("Blocked")
+  statuses        Status[]
+  statusViews     StatusView[]
+  statusReactions StatusReaction[]
+  messageReactions MessageReaction[]
 
   @@index([phone])
   @@index([email])
@@ -37,12 +49,14 @@ model Chat {
   name    String?
   isGroup Boolean @default(false)
   avatar  String?
+  description String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   participants ChatParticipant[]
   messages     Message[]
+  inviteLinks  InviteLink[]
 }
 
 model ChatParticipant {
@@ -66,7 +80,13 @@ model Message {
   content  String?
   type     MessageType   @default(TEXT)
   mediaUrl String?
+  fileName String?
+  fileSize Int?
+  mimeType String?
   status   MessageStatus @default(SENT)
+  isEdited Boolean       @default(false)
+  editedAt DateTime?
+  pinnedAt DateTime?
 
   createdAt   DateTime  @default(now())
   deliveredAt DateTime?
@@ -81,9 +101,12 @@ model Message {
   replyToId String?
   replyTo   Message?  @relation("Replies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies   Message[] @relation("Replies")
+  
+  reactions MessageReaction[]
 
   @@index([chatId, createdAt(sort: Desc)])
   @@index([senderId])
+  @@index([pinnedAt])
 }
 
 enum Role {
@@ -103,4 +126,108 @@ enum MessageStatus {
   SENT
   DELIVERED
   READ
+}
+
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  
+  blocker User @relation("BlockedBy", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  messageId String
+  userId    String
+  
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model InviteLink {
+  id        String   @id @default(cuid())
+  chatId    String
+  code      String   @unique
+  createdBy String
+  expiresAt DateTime?
+  maxUses   Int?
+  useCount  Int      @default(0)
+  isActive  Boolean  @default(true)
+  
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@index([code])
+  @@index([chatId])
+}
+
+model Status {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String?
+  mediaUrl  String?
+  type      StatusType @default(TEXT)
+  expiresAt DateTime
+  
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views    StatusView[]
+  reactions StatusReaction[]
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+}
+
+model StatusView {
+  id       String   @id @default(cuid())
+  statusId String
+  userId   String
+  
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  viewedAt DateTime @default(now())
+  
+  @@unique([statusId, userId])
+  @@index([statusId])
+  @@index([userId])
+}
+
+model StatusReaction {
+  id       String   @id @default(cuid())
+  statusId String
+  userId   String
+  emoji    String
+  
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([statusId, userId])
+  @@index([statusId])
+  @@index([userId])
+}
+
+enum StatusType {
+  TEXT
+  IMAGE
+  VIDEO
 }

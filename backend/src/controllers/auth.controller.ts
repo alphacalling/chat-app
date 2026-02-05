@@ -7,6 +7,7 @@ import {
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { prisma } from "../configs/database.js";
+import { saveFile } from "../utils/fileUpload.js";
 
 export class AuthController {
   //* register user
@@ -24,13 +25,30 @@ export class AuthController {
       }
 
       const { user, tokens } = await authService.register(
-        validationResult.data
+        validationResult.data,
       );
+
+      // Set httpOnly cookies for tokens
+      res.cookie("accessToken", tokens.accessToken, {
+        httpOnly: true, // Prevents JavaScript access (XSS protection)
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict", // CSRF protection
+        maxAge: 15 * 60 * 1000,
+        path: "/",
+      });
+
+      res.cookie("refreshToken", tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
 
       res.status(201).json({
         success: true,
         message: "Registration successful",
-        data: { user, tokens },
+        data: { user },
       } as ApiResponse);
     } catch (error) {
       const message =
@@ -56,12 +74,59 @@ export class AuthController {
         return;
       }
 
-      const { user, tokens } = await authService.login(validationResult.data);
+      const result = await authService.login(validationResult.data);
+
+      if (result.requiresTOTP) {
+        res.status(200).json({
+          success: true,
+          message: "TOTP required",
+          data: { user: result.user, requiresTOTP: true },
+        } as ApiResponse);
+        return;
+      }
+
+      // Set httpOnly cookies for tokens
+      res.cookie("accessToken", result.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000,
+        path: "/",
+      });
+
+      res.cookie("refreshToken", result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
+
+      // Clear old cookies
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+
+      // Set httpOnly cookies for tokens
+      res.cookie("accessToken", result.tokens.accessToken, {
+        httpOnly: true, // Prevents JavaScript access (XSS protection)
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict", // CSRF protection
+        maxAge: 15 * 60 * 1000,
+        path: "/",
+      });
+
+      res.cookie("refreshToken", result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
 
       res.status(200).json({
         success: true,
         message: "Login successful",
-        data: { user, tokens },
+        data: { user: result.user },
       } as ApiResponse);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
@@ -136,9 +201,10 @@ export class AuthController {
   //* refresh token
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
-      const validationResult = refreshTokenSchema.safeParse(req.body);
+      // Get refresh token
+      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-      if (!validationResult.success) {
+      if (!refreshToken) {
         res.status(400).json({
           success: false,
           message: "Refresh token required",
@@ -146,14 +212,29 @@ export class AuthController {
         return;
       }
 
-      const tokens = await authService.refreshTokens(
-        validationResult.data.refreshToken
-      );
+      const tokens = await authService.refreshTokens(refreshToken);
+
+      // Update cookies with new tokens
+      res.cookie("accessToken", tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000,
+        path: "/",
+      });
+
+      res.cookie("refreshToken", tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
 
       res.status(200).json({
         success: true,
         message: "Tokens refreshed",
-        data: { tokens },
+        data: {},
       } as ApiResponse);
     } catch (error) {
       res.status(401).json({
@@ -174,7 +255,13 @@ export class AuthController {
         return;
       }
 
-      await authService.logout(req.user.id);
+      if (req.user) {
+        await authService.logout(req.user.id);
+      }
+
+      // Clear httpOnly cookies
+      res.clearCookie("accessToken", { path: "/" });
+      res.clearCookie("refreshToken", { path: "/" });
 
       res.status(200).json({
         success: true,
@@ -204,12 +291,81 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: "Profile fetched",
-        data: { user },
+        data: user,
       } as ApiResponse);
     } catch (error) {
       res.status(404).json({
         success: false,
         message: "User not found",
+      } as ApiResponse);
+    }
+  }
+
+  //* getUserProfile - Get another user's profile by ID
+  async getUserProfile(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        console.error("❌ No authenticated user");
+        res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        } as ApiResponse);
+        return;
+      }
+
+      const { userId } = req.params;
+
+      if (!userId) {
+        console.error("❌ No userId in params");
+        res.status(400).json({
+          success: false,
+          message: "User ID is required",
+        } as ApiResponse);
+        return;
+      }
+
+      console.log("🔍 About to call authService.getUserProfile");
+      console.log("🔍 userId:", userId, "requesterId:", req.user.id);
+
+      const user = await authService.getUserProfile(userId, req.user.id);
+
+      console.log("✅✅✅ Profile fetched successfully, sending response");
+      res.status(200).json({
+        success: true,
+        message: "User profile fetched",
+        data: user,
+      } as ApiResponse);
+    } catch (error) {
+      console.error(" Error in getUserProfile controller:", error);
+      console.error(
+        "Error type:",
+        error instanceof Error ? error.constructor.name : typeof error,
+      );
+      console.error(
+        "Error message:",
+        error instanceof Error ? error.message : String(error),
+      );
+      console.error("Full error:", JSON.stringify(error, null, 2));
+
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch user profile";
+
+      // NOTE: removed 403 for blocked users since profiles can be viewed even if blocked
+      const statusCode = message.includes("not found")
+        ? 404
+        : message.includes("Invalid") || message.includes("Use /me/profile")
+          ? 400
+          : 500;
+
+      console.log(
+        "🔍 Sending error response with status:",
+        statusCode,
+        "message:",
+        message,
+      );
+      res.status(statusCode).json({
+        success: false,
+        message,
       } as ApiResponse);
     }
   }
@@ -242,6 +398,59 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: "Update failed",
+      } as ApiResponse);
+    }
+  }
+
+  //* uploadAvatar
+  async uploadAvatar(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        } as ApiResponse);
+        return;
+      }
+
+      const file = (req as any).file;
+
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          message: "No file uploaded",
+        } as ApiResponse);
+        return;
+      }
+
+      // Validate file type
+      if (!file.mimetype.startsWith("image/")) {
+        res.status(400).json({
+          success: false,
+          message: "Only image files are allowed",
+        } as ApiResponse);
+        return;
+      }
+
+      // Save file
+      const { fileUrl } = await saveFile(file.buffer, file.originalname, {
+        mimeType: file.mimetype,
+      });
+
+      // Update user avatar
+      const user = await authService.updateProfile(req.user.id, {
+        avatar: fileUrl,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Avatar uploaded successfully",
+        data: { user },
+      } as ApiResponse);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to upload avatar",
       } as ApiResponse);
     }
   }

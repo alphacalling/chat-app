@@ -2,3 +2,11 @@ node_modules
 dist
 /src/generated/prisma
 .env
+uploads/
+*.log
+MIGRATION_GUIDE.md
+DATABASE_FIX.md
+fix_db.ts
+manual_migration.sql
+quick_fix.sql
+README_MIGRATION.md

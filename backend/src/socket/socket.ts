@@ -5,6 +5,7 @@ import type {
   SocketData,
 } from "../types/type.js";
 import { prisma } from "../configs/database.js";
+import { blockService } from "../services/block.service.js";
 
 // Type alias for our Socket
 type TypedSocket = Socket<
@@ -81,7 +82,7 @@ export function setupSocket(io: TypedServer): void {
     });
 
     // ============================================
-    // SEND MESSAGE
+    // SEND MESSAGE (via Socket - for real-time only)
     // ============================================
     socket.on("message:send", async (data, callback) => {
       try {
@@ -89,8 +90,58 @@ export function setupSocket(io: TypedServer): void {
         const senderId = socket.data.userId;
 
         if (!senderId) {
-          callback({ success: false, error: "Not authenticated" });
+          if (typeof callback === "function") {
+            callback({ success: false, error: "Not authenticated" });
+          }
           return;
+        }
+
+        // Verify user is a participant
+        const participant = await prisma.chatParticipant.findFirst({
+          where: {
+            chatId,
+            userId: senderId,
+          },
+        });
+
+        if (!participant) {
+          if (typeof callback === "function") {
+            callback({
+              success: false,
+              error: "You are not a participant in this chat",
+            });
+          }
+          return;
+        }
+
+        // Check if chat is 1-on-1 (not group)
+        const chat = await prisma.chat.findUnique({
+          where: { id: chatId },
+          include: {
+            participants: {
+              where: { userId: { not: senderId } },
+              select: { userId: true },
+            },
+          },
+        });
+
+        // For 1-on-1 chats, check if user is blocked
+        if (chat && !chat.isGroup && chat.participants.length > 0) {
+          const otherUserId = chat.participants[0].userId;
+          
+          // Check if sender blocked the other user OR other user blocked the sender
+          const isBlocked = await blockService.isBlocked(senderId, otherUserId) || 
+                           await blockService.isBlocked(otherUserId, senderId);
+          
+          if (isBlocked) {
+            if (typeof callback === "function") {
+              callback({
+                success: false,
+                error: "Cannot send message. User is blocked.",
+              });
+            }
+            return;
+          }
         }
 
         // Save message to database
@@ -132,24 +183,28 @@ export function setupSocket(io: TypedServer): void {
         });
 
         // Callback to sender with success
-        callback({
-          success: true,
-          message: {
-            id: message.id,
-            content: message.content,
-            type: message.type,
-            status: message.status,
-            senderId: message.senderId,
-            chatId: message.chatId,
-            createdAt: message.createdAt,
-            sender: message.sender,
-          },
-        });
+        if (typeof callback === "function") {
+          callback({
+            success: true,
+            message: {
+              id: message.id,
+              content: message.content,
+              type: message.type,
+              status: message.status,
+              senderId: message.senderId,
+              chatId: message.chatId,
+              createdAt: message.createdAt,
+              sender: message.sender,
+            },
+          });
+        }
 
         console.log(`📨 Message sent in chat:${chatId}`);
       } catch (error) {
         console.error("Error sending message:", error);
-        callback({ success: false, error: "Failed to send message" });
+        if (typeof callback === "function") {
+          callback({ success: false, error: "Failed to send message" });
+        }
       }
     });
 
@@ -254,6 +309,101 @@ export function setupSocket(io: TypedServer): void {
           `❌ User ${userId} disconnected. Online users: ${onlineUsers.size}`
         );
       }
+    });
+
+    // ============================================
+    // MESSAGE DELETE
+    // ============================================
+    socket.on("message:delete", async (data) => {
+      try {
+        const { messageId, chatId } = data;
+        const userId = socket.data.userId;
+
+        if (!userId) {
+          socket.emit("error", { message: "Not authenticated" });
+          return;
+        }
+
+        // Verify message exists and user is the sender
+        const message = await prisma.message.findUnique({
+          where: { id: messageId },
+        });
+
+        if (!message) {
+          socket.emit("error", { message: "Message not found" });
+          return;
+        }
+
+        if (message.senderId !== userId) {
+          socket.emit("error", {
+            message: "You can only delete your own messages",
+          });
+          return;
+        }
+
+        // Delete message (soft delete)
+        await prisma.message.update({
+          where: { id: messageId },
+          data: {
+            content: "This message was deleted",
+            status: "SENT",
+          },
+        });
+
+        // Broadcast to all in chat room
+        io.to(`chat:${chatId}`).emit("message:deleted", {
+          messageId,
+          chatId,
+          deletedBy: userId,
+        });
+
+        console.log(`🗑️ Message ${messageId} deleted in chat:${chatId}`);
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        socket.emit("error", { message: "Failed to delete message" });
+      }
+    });
+
+    // ============================================
+    // GROUP OPERATIONS
+    // ============================================
+    socket.on("group:created", (data) => {
+      const { chatId, participants } = data;
+      // Notify all participants
+      participants.forEach((userId: string) => {
+        const socketId = onlineUsers.get(userId);
+        if (socketId) {
+          io.to(socketId).emit("group:created", data);
+        }
+      });
+    });
+
+    socket.on("group:updated", (data) => {
+      const { chatId } = data;
+      // Broadcast to all in chat room
+      io.to(`chat:${chatId}`).emit("group:updated", data);
+    });
+
+    socket.on("group:user-added", (data) => {
+      const { chatId, userId } = data;
+      // Notify the added user
+      const socketId = onlineUsers.get(userId);
+      if (socketId) {
+        io.to(socketId).emit("group:user-added", data);
+      }
+      // Broadcast to all in chat room
+      io.to(`chat:${chatId}`).emit("group:user-added", data);
+    });
+
+    socket.on("group:user-removed", (data) => {
+      const { chatId, userId } = data;
+      // Notify the removed user
+      const socketId = onlineUsers.get(userId);
+      if (socketId) {
+        io.to(socketId).emit("group:user-removed", data);
+      }
+      // Broadcast to all in chat room
+      io.to(`chat:${chatId}`).emit("group:user-removed", data);
     });
   });
 }
