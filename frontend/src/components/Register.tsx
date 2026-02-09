@@ -8,7 +8,7 @@ import TOTPSetupModal from "./TOTPSetupModal";
 import { useAuth } from "../context/useAuth";
 
 const Register = () => {
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -48,10 +48,11 @@ const Register = () => {
         password: formData.password,
       });
 
-      const { user: userData } = response.data.data;
       console.log(
         "✅ Registered and logged in, tokens stored in httpOnly cookies",
       );
+      // Set user in auth context (cookies already set by backend)
+      await refreshUser();
       setShowTOTP(true);
     } catch (err: any) {
       setError(err.response?.data?.message || "Registration failed");
@@ -228,11 +229,11 @@ const Register = () => {
         open={showTOTP}
         onClose={() => {
           setShowTOTP(false);
-          navigate("/login");
+          navigate("/");
         }}
         onComplete={() => {
           setShowTOTP(false);
-          navigate("/login");
+          navigate("/");
         }}
       />
     </div>

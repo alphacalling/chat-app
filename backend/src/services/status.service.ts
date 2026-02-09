@@ -130,6 +130,13 @@ export class StatusService {
         expiresAt: { gt: new Date() },
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
         views: {
           include: {
             user: {

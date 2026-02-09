@@ -49,18 +49,9 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
     console.log("🔌 Connecting socket for user:", user.id);
 
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      console.log("❌ No access token found");
-      return;
-    }
-
-    // Create socket connection
+    // Access token is in httpOnly cookie; send credentials so backend can verify
     const newSocket = io("http://localhost:5000", {
-      auth: {
-        token: token,
-      },
+      withCredentials: true,
     });
 
     setSocket(newSocket);

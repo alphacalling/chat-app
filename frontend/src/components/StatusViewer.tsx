@@ -4,7 +4,7 @@ import { useAuth } from "../context/useAuth";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import { X, Smile, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { X, Smile, Trash2, ChevronLeft, ChevronRight, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 
 interface Status {
@@ -20,8 +20,8 @@ interface Status {
     name: string;
     avatar?: string | null;
   };
-  views?: any[];
-  reactions?: any[];
+  views?: { userId: string; user?: { id: string; name: string; avatar?: string | null } }[];
+  reactions?: { userId: string; emoji: string; user?: { id: string; name: string; avatar?: string | null } }[];
 }
 
 interface StatusViewerProps {
@@ -48,6 +48,7 @@ const StatusViewer = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [viewed, setViewed] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showViewersPanel, setShowViewersPanel] = useState(false);
 
   useEffect(() => {
     setCurrentStatus(statuses[currentIndex] || null);
@@ -180,14 +181,14 @@ const StatusViewer = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 ring-2 ring-white/50 shadow-lg">
-                  <AvatarImage src={currentStatus.user.avatar || undefined} />
+                  <AvatarImage src={currentStatus.user?.avatar || undefined} />
                   <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white font-bold">
-                    {currentStatus.user.name[0].toUpperCase()}
+                    {(currentStatus.user?.name || "?")[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-white font-bold">
-                    {currentStatus.user.name}
+                    {currentStatus.user?.name ?? "Unknown"}
                   </p>
                   <p className="text-white/70 text-xs">
                     {new Date(currentStatus.createdAt).toLocaleTimeString([], {
@@ -285,14 +286,27 @@ const StatusViewer = ({
                   <Smile className="h-6 w-6" />
                 </Button>
 
-                {/* View Count for own status */}
-                {isOwn && currentStatus.views && (
-                  <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                {/* View count / Viewers panel toggle for own status */}
+                {isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => setShowViewersPanel((p) => !p)}
+                    className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/20 transition-colors"
+                  >
                     <Eye className="h-4 w-4 text-white" />
                     <span className="text-white text-sm font-semibold">
-                      {currentStatus.views.length}
+                      {currentStatus.views?.length ?? 0}
                     </span>
-                  </div>
+                    <span className="text-white/80 text-xs">
+                      {(currentStatus.reactions?.length ?? 0) > 0 &&
+                        ` • ${currentStatus.reactions?.length} reactions`}
+                    </span>
+                    {showViewersPanel ? (
+                      <ChevronUp className="h-4 w-4 text-white" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-white" />
+                    )}
+                  </button>
                 )}
               </div>
 
@@ -314,6 +328,65 @@ const StatusViewer = ({
               )}
             </div>
           </div>
+
+          {/* Viewed by & Reacted by panel (own status only) */}
+          {isOwn && showViewersPanel && (
+            <div className="absolute bottom-20 left-0 right-0 z-20 max-h-[280px] overflow-y-auto bg-black/90 backdrop-blur-sm border-t border-white/10 rounded-t-2xl p-4">
+              <p className="text-white/80 text-xs font-semibold mb-3 uppercase tracking-wider">
+                Viewed by ({currentStatus.views?.length ?? 0})
+              </p>
+              <div className="space-y-2 mb-4">
+                {(currentStatus.views?.length ?? 0) === 0 ? (
+                  <p className="text-white/50 text-sm">No views yet</p>
+                ) : (
+                  currentStatus.views?.map((v: any) => (
+                    <div
+                      key={v.userId}
+                      className="flex items-center gap-3 text-white"
+                    >
+                      <Avatar className="h-8 w-8 ring-2 ring-white/30">
+                        <AvatarImage src={v.user?.avatar || undefined} />
+                        <AvatarFallback className="bg-whatsapp-green/80 text-white text-xs">
+                          {(v.user?.name || "?")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">
+                        {v.user?.name ?? "Unknown"}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-white/80 text-xs font-semibold mb-3 uppercase tracking-wider">
+                Reacted by ({currentStatus.reactions?.length ?? 0})
+              </p>
+              <div className="space-y-2">
+                {(currentStatus.reactions?.length ?? 0) === 0 ? (
+                  <p className="text-white/50 text-sm">No reactions yet</p>
+                ) : (
+                  currentStatus.reactions?.map((r: any, idx: number) => (
+                    <div
+                      key={r.userId + String(idx)}
+                      className="flex items-center gap-3 text-white"
+                    >
+                      <Avatar className="h-8 w-8 ring-2 ring-white/30">
+                        <AvatarImage src={r.user?.avatar || undefined} />
+                        <AvatarFallback className="bg-whatsapp-green/80 text-white text-xs">
+                          {(r.user?.name || "?")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium flex-1">
+                        {r.user?.name ?? "Unknown"}
+                      </span>
+                      <span className="text-lg" title={r.emoji}>
+                        {r.emoji}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Navigation Buttons */}
           {currentIndex > 0 && (

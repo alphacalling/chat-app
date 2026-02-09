@@ -6,6 +6,7 @@ import type {
 } from "../types/type.js";
 import { prisma } from "../configs/database.js";
 import { blockService } from "../services/block.service.js";
+import { verifyAccessToken } from "../utils/jwt.js";
 
 // Type alias for our Socket
 type TypedSocket = Socket<
@@ -25,12 +26,43 @@ type TypedServer = Server<
 // Online users store (Production me Redis use karo)
 const onlineUsers = new Map<string, string>(); // userId -> socketId
 
+// Parse Cookie header (e.g. "accessToken=xyz; refreshToken=abc")
+function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(";").reduce((acc, s) => {
+    const eq = s.indexOf("=");
+    if (eq === -1) return acc;
+    const k = s.slice(0, eq).trim();
+    const v = s.slice(eq + 1).trim();
+    acc[k] = v;
+    return acc;
+  }, {} as Record<string, string>);
+}
+
 export function setupSocket(io: TypedServer): void {
+  // Auth middleware: verify access token from cookie (httpOnly cookies sent with withCredentials)
+  io.use((socket: TypedSocket, next) => {
+    const cookieHeader =
+      socket.handshake.headers?.cookie ??
+      (socket.handshake as any).request?.headers?.cookie;
+    const cookies = parseCookies(cookieHeader);
+    const token = cookies.accessToken;
+    if (!token) {
+      return next(new Error("Access token required"));
+    }
+    const payload = verifyAccessToken(token);
+    if (!payload) {
+      return next(new Error("Invalid or expired token"));
+    }
+    socket.data.userId = payload.userId;
+    next();
+  });
+
   io.on("connection", (socket: TypedSocket) => {
     console.log(`🔌 New socket connection: ${socket.id}`);
 
     // ============================================
-    // USER CONNECT EVENT
+    // USER CONNECT EVENT (userId must match token; sets online status)
     // ============================================
     socket.on("user:connect", async (userId: string) => {
       try {
@@ -39,10 +71,15 @@ export function setupSocket(io: TypedServer): void {
           socket.emit("error", { message: "Invalid user ID" });
           return;
         }
+        // Ensure client cannot impersonate: userId must match authenticated user
+        if (socket.data.userId && socket.data.userId !== userId) {
+          socket.emit("error", { message: "Invalid user ID" });
+          return;
+        }
+        if (!socket.data.userId) socket.data.userId = userId;
 
         // Store user mapping
         onlineUsers.set(userId, socket.id);
-        socket.data.userId = userId;
 
         // Update user status in database
         await prisma.user.update({

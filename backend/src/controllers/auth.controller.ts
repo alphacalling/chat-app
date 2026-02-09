@@ -102,27 +102,6 @@ export class AuthController {
         path: "/",
       });
 
-      // Clear old cookies
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
-
-      // Set httpOnly cookies for tokens
-      res.cookie("accessToken", result.tokens.accessToken, {
-        httpOnly: true, // Prevents JavaScript access (XSS protection)
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict", // CSRF protection
-        maxAge: 15 * 60 * 1000,
-        path: "/",
-      });
-
-      res.cookie("refreshToken", result.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      });
-
       res.status(200).json({
         success: true,
         message: "Login successful",

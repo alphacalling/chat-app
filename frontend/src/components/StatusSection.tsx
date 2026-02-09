@@ -39,6 +39,7 @@ const StatusSection = () => {
   const [statusType, setStatusType] = useState<"TEXT" | "IMAGE" | "VIDEO">("TEXT");
   const [creating, setCreating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [showMyStatusPicker, setShowMyStatusPicker] = useState(false);
 
   useEffect(() => {
     fetchStatuses();
@@ -96,6 +97,27 @@ const StatusSection = () => {
     setViewerStatuses(allStatuses);
     setViewerIndex(index);
     setShowViewer(true);
+    setShowMyStatusPicker(false);
+  };
+
+  const handleMyStatusClick = () => {
+    if (myStatuses.length > 0) {
+      setShowMyStatusPicker(true);
+    } else {
+      setShowCreate(true);
+    }
+  };
+
+  const openViewerFromPicker = (index: number) => {
+    setViewerStatuses(myStatuses);
+    setViewerIndex(index);
+    setShowViewer(true);
+    setShowMyStatusPicker(false);
+  };
+
+  const openCreateFromPicker = () => {
+    setShowMyStatusPicker(false);
+    setShowCreate(true);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,10 +149,7 @@ const StatusSection = () => {
           {/* My Status */}
           <div
             className="flex-shrink-0 cursor-pointer group"
-            onClick={() => myStatuses.length > 0 
-              ? handleViewStatus([{ user, statuses: myStatuses }], 0)
-              : setShowCreate(true)
-            }
+            onClick={handleMyStatusClick}
           >
             <div className="relative">
               <Avatar className={`h-16 w-16 ring-4 transition-all duration-300 group-hover:scale-105 ${
@@ -288,6 +307,78 @@ const StatusSection = () => {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* My Status Picker - when you have statuses, choose view or add new */}
+      <Dialog open={showMyStatusPicker} onOpenChange={setShowMyStatusPicker}>
+        <DialogContent className="max-w-sm bg-white border-2 border-whatsapp-border rounded-2xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b border-whatsapp-border">
+            <DialogTitle className="text-whatsapp-text text-lg font-bold">
+              My Status
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[320px] overflow-y-auto">
+            {myStatuses.map((status, index) => (
+              <button
+                key={status.id}
+                type="button"
+                onClick={() => openViewerFromPicker(index)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-whatsapp-light/50 transition-colors text-left border-b border-whatsapp-border last:border-b-0"
+              >
+                <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+                  {status.type === "IMAGE" && status.mediaUrl ? (
+                    <img
+                      src={status.mediaUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : status.type === "VIDEO" && status.mediaUrl ? (
+                    <video
+                      src={status.mediaUrl}
+                      className="w-full h-full object-cover"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <Type className="h-6 w-6 text-whatsapp-secondary" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-whatsapp-text font-medium truncate">
+                    {status.type === "TEXT" && status.content
+                      ? status.content
+                      : status.type === "IMAGE"
+                        ? "Photo"
+                        : status.type === "VIDEO"
+                          ? "Video"
+                          : "Status"}
+                  </p>
+                  <p className="text-whatsapp-secondary text-xs">
+                    {new Date(status.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={openCreateFromPicker}
+              className="w-full flex items-center gap-3 p-4 hover:bg-whatsapp-green/10 transition-colors text-left border-t-2 border-dashed border-whatsapp-border"
+            >
+              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-whatsapp-green/20 flex items-center justify-center border-2 border-dashed border-whatsapp-green">
+                <Plus className="h-7 w-7 text-whatsapp-green" />
+              </div>
+              <div className="flex-1">
+                <p className="text-whatsapp-green font-semibold">Add new status</p>
+                <p className="text-whatsapp-secondary text-xs">
+                  Share a new update
+                </p>
+              </div>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

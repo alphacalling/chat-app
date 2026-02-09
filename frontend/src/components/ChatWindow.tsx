@@ -479,7 +479,7 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
 
       {/* Messages Area */}
       <ScrollArea className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-whatsapp-light/30">
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-1">
           {loading ? (
             <div className="flex justify-center items-center h-full py-12">
               <div className="flex flex-col items-center gap-4">
@@ -505,24 +505,31 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               </div>
             </div>
           ) : (
-            messages.map((message, index) => (
-              <div
-                key={message.id}
-                id={`message-${message.id}`}
-                className="animate-in fade-in slide-in-from-bottom-2 duration-300"
-                style={{ animationDelay: `${index * 20}ms` }}
-              >
-                <MessageBubble
-                  message={message}
-                  isOwn={message.senderId === user?.id}
-                  isGroup={selectedChat.isGroupChat}
-                  chatId={selectedChat.id}
-                  onDelete={() => handleDeleteMessage(message.id)}
-                  onReply={handleReply}
-                  onEdit={handleEdit}
-                />
-              </div>
-            ))
+            messages.map((message, index) => {
+              const isOwn = message.senderId === user?.id;
+              return (
+                <div
+                  key={message.id}
+                  id={`message-${message.id}`}
+                  className={`flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                    isOwn ? "justify-end" : "justify-start"
+                  }`}
+                  style={{ animationDelay: `${index * 20}ms` }}
+                >
+                  <div className={`max-w-[75%] ${isOwn ? "ml-auto" : "mr-auto"}`}>
+                    <MessageBubble
+                      message={message}
+                      isOwn={isOwn}
+                      isGroup={selectedChat.isGroupChat}
+                      chatId={selectedChat.id}
+                      onDelete={() => handleDeleteMessage(message.id)}
+                      onReply={handleReply}
+                      onEdit={handleEdit}
+                    />
+                  </div>
+                </div>
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>

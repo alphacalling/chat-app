@@ -3,13 +3,12 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:5000",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Cookies are automatically sent with withCredentials: true
-// No need to manually add tokens to headers anymore
 api.interceptors.request.use(
   (config) => {
     // If FormData, remove Content-Type header to let axios set it automatically with boundary
@@ -29,27 +28,26 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Auth-check request: 401 is expected when not logged in — don't refresh/redirect (avoids loop on login page)
+    const isAuthCheck = originalRequest?.url?.includes?.("/api/me/profile");
+    if (isAuthCheck) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (refreshToken) {
-          const { data } = await axios.post("http://localhost:5000/api/auth/refresh", {
-            refreshToken,
-          });
-
-          localStorage.setItem("accessToken", data.data.tokens.accessToken);
-          api.defaults.headers.common["Authorization"] = `Bearer ${data.data.tokens.accessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${data.data.tokens.accessToken}`;
-
-          return api(originalRequest);
-        }
+        // Refresh token is in httpOnly cookie - send with credentials
+        await api.post("/api/auth/refresh");
+        // New access token is set in cookie by backend; retry original request
+        return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout user
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        window.location.href = "/login";
+        // Refresh failed, redirect to login (only if not already there to avoid reload loop)
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
 
