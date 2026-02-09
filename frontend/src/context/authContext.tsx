@@ -14,9 +14,14 @@ interface User {
 interface AuthContextProps {
   user: User | null;
   loading: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (
+    phone: string,
+    password: string,
+    totpToken?: string,
+  ) => Promise<{ requiresTOTP?: boolean; user?: any }>;
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 interface AuthProviderProps {
@@ -29,31 +34,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check auth on app start
+  // Check auth on app start (cookies are automatically sent with requests)
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       try {
         const response = await api.get("/api/me/profile");
-        
+
         // Handle both formats: response.data or response.data.data
         const userData = response.data.data || response.data;
-        
+
         console.log("✅ Profile fetched:", userData);
         setUser(userData);
       } catch (err: any) {
         console.log("❌ Auth check failed:", err.response?.data || err.message);
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        delete api.defaults.headers.common["Authorization"];
+        // Cookies will be cleared by backend on logout
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -62,59 +57,94 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkAuth();
   }, []);
 
-  const login = async (phone: string, password: string): Promise<void> => {
-    const response = await api.post("/api/auth/login", { phone, password });
+  const login = async (
+    phone: string,
+    password: string,
+    totpToken?: string,
+  ): Promise<{ requiresTOTP?: boolean; user?: any }> => {
+    const response = await api.post("/api/auth/login", {
+      phone,
+      password,
+      totpToken,
+    });
 
     console.log("📦 Full response:", response.data);
 
-    // ✅ FIX: Access response.data.data
-    const { user: userData, tokens } = response.data.data;
+    const responseData = response.data.data;
+
+    // Check if TOTP is required
+    if (responseData.requiresTOTP) {
+      console.log("🔐 TOTP required for user:", responseData.user);
+      return { requiresTOTP: true, user: responseData.user };
+    }
+
+    // Normal login flow
+    // Tokens are now stored in httpOnly cookies (automatically handled by browser)
+    const { user: userData } = responseData;
 
     console.log("✅ User:", userData);
-    console.log("✅ Tokens:", tokens);
-
-    // Save tokens
-    localStorage.setItem("accessToken", tokens.accessToken);
-    localStorage.setItem("refreshToken", tokens.refreshToken);
-
-    // Set axios header
-    api.defaults.headers.common["Authorization"] = `Bearer ${tokens.accessToken}`;
+    console.log("✅ Tokens stored in httpOnly cookies (secure)");
 
     // Set user state - this triggers navigation
     setUser(userData);
 
     console.log("✅ Login complete, user set!");
+    return { requiresTOTP: false };
   };
 
-  const register = async (name: string, phone: string, password: string): Promise<void> => {
-    const response = await api.post("/api/auth/register", { name, phone, password });
+  const register = async (
+    name: string,
+    phone: string,
+    password: string,
+  ): Promise<void> => {
+    const response = await api.post("/api/auth/register", {
+      name,
+      phone,
+      password,
+    });
     console.log("✅ Register response:", response.data);
     // Registration successful, user needs to login
   };
 
   const logout = async (): Promise<void> => {
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (refreshToken) {
-        await api.post("/logout", { refreshToken });
-      }
+      await api.post("/api/logout");
     } catch (err) {
       console.error("Logout API error:", err);
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      delete api.defaults.headers.common["Authorization"];
+      // Cookies are cleared by backend on logout
       setUser(null);
       console.log("✅ Logged out");
     }
   };
 
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const response = await api.get("/api/me/profile");
+      const userData = response.data.data || response.data;
+      console.log("✅ User profile refreshed:", userData);
+      setUser(userData);
+    } catch (err: any) {
+      console.error(
+        "❌ Failed to refresh user profile:",
+        err.response?.data || err.message,
+      );
+    }
+  };
+
   useEffect(() => {
-    console.log("🔄 Auth state changed - User:", user?.name || "null", "Loading:", loading);
+    console.log(
+      "🔄 Auth state changed - User:",
+      user?.name || "null",
+      "Loading:",
+      loading,
+    );
   }, [user, loading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, loading, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

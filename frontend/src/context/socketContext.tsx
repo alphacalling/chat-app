@@ -17,6 +17,7 @@ interface SocketContextProps {
   stopTyping: (chatId: string) => void;
   markAsDelivered: (messageId: string) => void;
   markAsRead: (messageId: string, chatId: string) => void;
+  deleteMessage: (messageId: string, chatId: string) => void;
 }
 
 interface SocketProviderProps {
@@ -35,7 +36,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     // Only connect if user exists and has an id
     if (!user || !user.id) {
       console.log("❌ No user or user.id, skipping socket connection");
-      
+
       // Cleanup existing socket
       if (socket) {
         socket.disconnect();
@@ -49,7 +50,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     console.log("🔌 Connecting socket for user:", user.id);
 
     const token = localStorage.getItem("accessToken");
-    
+
     if (!token) {
       console.log("❌ No access token found");
       return;
@@ -189,6 +190,15 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     [socket, isConnected]
   );
 
+  const deleteMessage = useCallback(
+    (messageId: string, chatId: string) => {
+      if (socket && isConnected) {
+        socket.emit("message:delete", { messageId, chatId });
+      }
+    },
+    [socket, isConnected]
+  );
+
   return (
     <SocketContext.Provider
       value={{
@@ -202,6 +212,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         stopTyping,
         markAsDelivered,
         markAsRead,
+        deleteMessage,
       }}
     >
       {children}

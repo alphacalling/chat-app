@@ -1,18 +1,47 @@
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        'whatsapp-green': '#00a884',
-        'whatsapp-dark': '#111b21',
-        'whatsapp-panel': '#202c33',
-        'outgoing-bg': '#005c4b',
-        'incoming-bg': '#202c33',
-      }
+        "whatsapp-green": "#00a884",
+        "whatsapp-light": "#f0f2f5",
+        "whatsapp-panel": "#ffffff",
+        "outgoing-bg": "#d9fdd3",
+        "incoming-bg": "#ffffff",
+        "whatsapp-header": "#008069",
+        "whatsapp-border": "#e9edef",
+        "whatsapp-text": "#111b21",
+        "whatsapp-secondary": "#667781",
+      },
+      spacing: {
+        "safe-top": "env(safe-area-inset-top)",
+        "safe-bottom": "env(safe-area-inset-bottom)",
+        "safe-left": "env(safe-area-inset-left)",
+        "safe-right": "env(safe-area-inset-right)",
+      },
+      animation: {
+        "fade-in": "fadeIn 0.3s ease-in-out",
+        "slide-up": "slideUp 0.3s ease-out",
+        "scale-in": "scaleIn 0.2s ease-out",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        scaleIn: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
     },
   },
   plugins: [],
-}
+};

@@ -4,15 +4,22 @@ import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import JoinInvitePage from "./components/JoinInvitePage";
 import { useAuth } from "./context/useAuth";
 
 const Home = () => {
   const [selectedChat, setSelectedChat] = useState<any>(null);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar onSelectChat={setSelectedChat} />
-      <ChatWindow selectedChat={selectedChat} />
+    <div className="flex h-screen overflow-hidden bg-whatsapp-dark">
+      {/* Sidebar - hidden on mobile, visible on desktop */}
+      <div className="hidden md:flex md:w-1/3 lg:w-1/3">
+        <Sidebar onSelectChat={setSelectedChat} />
+      </div>
+      {/* Chat Window - full width on mobile, 2/3 on desktop */}
+      <div className="w-full md:w-2/3">
+        <ChatWindow selectedChat={selectedChat} onChatUpdate={setSelectedChat} />
+      </div>
     </div>
   );
 };
@@ -35,11 +42,7 @@ function App() {
     return <LoadingScreen />;
   }
 
-  // if (!user && !loading) {
-  //   return <Navigate to="/login" replace />;
-  // }
-
-  console.log("🔄 App render - User:", user ? user.name : "null");
+  console.log("🔄 App rendered - User:", user?.name || "null");
 
   return (
     <Routes>
@@ -69,7 +72,21 @@ function App() {
         element={user ? <Navigate to="/chat" replace /> : <Register />}
       />
 
-      <Route path="*" element={<Navigate to="/chat" replace />} />
+      <Route
+        path="/join/:code"
+        element={<JoinInvitePage />}
+      />
+
+      <Route
+        path="*"
+        element={
+          user ? (
+            <Navigate to="/chat" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
     </Routes>
   );
 }
