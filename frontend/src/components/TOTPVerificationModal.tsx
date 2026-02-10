@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Shield, Lock, KeyRound, AlertCircle } from "lucide-react";
@@ -11,7 +17,12 @@ interface TOTPVerificationModalProps {
   userName?: string;
 }
 
-const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerificationModalProps) => {
+const TOTPVerificationModal = ({
+  open,
+  onClose,
+  onVerify,
+  userName,
+}: TOTPVerificationModalProps) => {
   const [totpToken, setTotpToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,19 +50,18 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white border-2 border-whatsapp-border rounded-3xl shadow-2xl overflow-hidden">
-        <DialogHeader className="border-b-2 border-whatsapp-border pb-4 bg-gradient-to-r from-whatsapp-green/5 to-green-50">
-          <DialogTitle className="text-whatsapp-text flex items-center gap-3 text-xl font-bold">
-            <div className="w-10 h-10 bg-gradient-to-br from-whatsapp-green to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+      <DialogContent className="max-w-md bg-white border-2 border-gray-200 rounded-3xl shadow-2xl overflow-hidden">
+        <DialogHeader className="border-b-2 border-gray-200 pb-4 bg-gray-50">
+          <DialogTitle className="text-gray-800 flex items-center gap-3 text-xl font-bold">
+            <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shadow-lg">
               <Shield className="h-5 w-5 text-white" />
             </div>
             Two-Factor Authentication
           </DialogTitle>
-          <DialogDescription className="text-whatsapp-secondary mt-2">
-            {userName 
-              ? `Enter the 6-digit code for ${userName}` 
-              : "Enter the 6-digit code from your authenticator app"
-            }
+          <DialogDescription className="text-gray-600 mt-2">
+            {userName
+              ? `Enter the 6-digit code for ${userName}`
+              : "Enter the 6-digit code from your authenticator app"}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,8 +76,8 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
 
           {/* Code Input */}
           <div className="space-y-3">
-            <label className="text-sm font-bold text-whatsapp-text flex items-center gap-2">
-              <KeyRound className="h-4 w-4 text-whatsapp-green" />
+            <label className="text-sm font-bold text-gray-800 flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-slate-600" />
               6-Digit Code
             </label>
             <Input
@@ -79,12 +89,13 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
               }}
               placeholder="000000"
               maxLength={6}
-              className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green text-center text-3xl font-mono tracking-[0.5em] h-16 rounded-xl"
+              className="bg-gray-50 border-2 border-gray-200 focus:border-slate-400 text-center text-3xl font-mono tracking-[0.5em] h-16 rounded-xl"
               autoFocus
               disabled={loading}
             />
-            <p className="text-whatsapp-secondary text-xs text-center">
-              Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code
+            <p className="text-gray-600 text-xs text-center">
+              Open your authenticator app (Google Authenticator, Authy, etc.)
+              and enter the code
             </p>
           </div>
 
@@ -95,8 +106,8 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
                 key={idx}
                 className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center text-xl font-mono transition-all duration-300 ${
                   totpToken[idx]
-                    ? "bg-whatsapp-green text-white border-whatsapp-green shadow-lg"
-                    : "bg-whatsapp-light/50 border-whatsapp-border text-whatsapp-secondary"
+                    ? "bg-slate-700 text-white border-slate-700 shadow-lg"
+                    : "bg-gray-50 border-gray-200 text-gray-400"
                 }`}
               >
                 {totpToken[idx] || "•"}
@@ -108,7 +119,7 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
             <Button
               type="submit"
               disabled={loading || totpToken.length !== 6}
-              className="flex-1 bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green rounded-xl h-12 font-bold shadow-lg disabled:opacity-50"
+              className="flex-1 bg-slate-700 hover:bg-slate-800 rounded-xl h-12 font-bold shadow-lg disabled:opacity-50"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -127,7 +138,7 @@ const TOTPVerificationModal = ({ open, onClose, onVerify, userName }: TOTPVerifi
               variant="ghost"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 hover:bg-whatsapp-light rounded-xl h-12 font-semibold"
+              className="flex-1 hover:bg-gray-100 rounded-xl h-12 font-semibold"
             >
               Cancel
             </Button>

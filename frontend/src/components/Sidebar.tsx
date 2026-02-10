@@ -9,19 +9,19 @@ import CreateGroupModal from "./CreateGroupModal";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
-import { 
-  Search, 
-  MessageSquarePlus, 
-  Users, 
-  LogOut, 
+import {
+  Search,
+  MessageSquarePlus,
+  Users,
+  LogOut,
   Settings,
   MessageCircle,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import SettingsModal from "./SettingsModal";
 import StatusSection from "./StatusSection";
 
-// Fixed Chat interface
+// Chat interface
 export interface ChatUser {
   id: string;
   name: string;
@@ -74,16 +74,17 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     fetchConversations();
   }, [user]);
 
-  // Sync current user's name & avatar everywhere (sidebar list, so "You" shows updated profile)
   useEffect(() => {
     if (user?.id && conversations.length > 0) {
       setConversations((prev) =>
         prev.map((chat) => {
           const updatedUsers = chat.users.map((u) =>
-            u.id === user.id ? { ...u, name: user.name, avatar: user.avatar } : u
+            u.id === user.id
+              ? { ...u, name: user.name, avatar: user.avatar }
+              : u,
           );
           return { ...chat, users: updatedUsers };
-        })
+        }),
       );
     }
   }, [user?.id, user?.name, user?.avatar]);
@@ -94,7 +95,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     const handleNewMessage = (newMessageReceived: any) => {
       setConversations((prev) => {
         const chatIndex = prev.findIndex(
-          (c) => c.id === newMessageReceived.chatId
+          (c) => c.id === newMessageReceived.chatId,
         );
 
         if (chatIndex !== -1) {
@@ -193,42 +194,43 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const sender = getSender(user, chat.users);
-    const chatName = chat.isGroupChat 
+    const chatName = chat.isGroupChat
       ? chat.chatName?.toLowerCase() || ""
       : sender?.name?.toLowerCase() || "";
     return chatName.includes(query);
   });
 
   return (
-    <div className="w-full h-full bg-white flex flex-col border-r-2 border-whatsapp-border">
-      {/* Premium Header */}
-      <div className="p-4 bg-gradient-to-r from-whatsapp-header to-green-700 flex justify-between items-center shrink-0 shadow-lg">
+    <div className="w-full h-full bg-white flex flex-col border-r border-gray-200">
+      {/* Header */}
+      <div className="p-4 bg-slate-800 flex justify-between items-center shrink-0 shadow-sm">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Avatar className="h-11 w-11 ring-2 ring-white/30 shadow-lg">
-            <AvatarImage 
-              src={user?.avatar 
-                ? `${user.avatar}${user.avatar.includes('?') ? '&' : '?'}t=${Date.now()}`
-                : undefined
-              } 
+          <Avatar className="h-12 w-12 ring-2 ring-slate-600 shadow-sm">
+            <AvatarImage
+              src={
+                user?.avatar
+                  ? `${user.avatar}${user.avatar.includes("?") ? "&" : "?"}t=${Date.now()}`
+                  : undefined
+              }
               alt={user?.name}
               key={user?.avatar}
             />
-            <AvatarFallback className="bg-white/20 text-white font-bold">
+            <AvatarFallback className="bg-slate-600 text-white font-bold">
               {user?.name?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-sm block truncate">
+              <span className="text-white font-semibold text-sm block truncate">
                 {user?.name}
               </span>
-              <div className="flex items-center gap-1.5 bg-white/20 px-2 py-0.5 rounded-full">
+              <div className="flex items-center gap-1.5 bg-slate-700 px-2 py-0.5 rounded-full">
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    isConnected ? "bg-green-300 animate-pulse" : "bg-red-400"
+                    isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"
                   }`}
                 />
-                <span className="text-xs text-white/90 font-medium">
+                <span className="text-xs text-slate-300 font-medium">
                   {isConnected ? "Online" : "Offline"}
                 </span>
               </div>
@@ -240,7 +242,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowSearch(true)}
-            className="h-10 w-10 hover:bg-white/20 text-white rounded-xl"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
             title="New Chat"
           >
             <MessageSquarePlus className="h-5 w-5" />
@@ -249,7 +251,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowCreateGroup(true)}
-            className="h-10 w-10 hover:bg-white/20 text-white rounded-xl"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
             title="New Group"
           >
             <Users className="h-5 w-5" />
@@ -258,7 +260,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(true)}
-            className="h-10 w-10 hover:bg-white/20 text-white rounded-xl"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
             title="Settings"
           >
             <Settings className="h-5 w-5" />
@@ -270,7 +272,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
               await logout();
               navigate("/login");
             }}
-            className="h-10 w-10 hover:bg-red-500/30 text-white rounded-xl"
+            className="h-10 w-10 hover:bg-red-600 text-white rounded-lg"
             title="Logout"
           >
             <LogOut className="h-5 w-5" />
@@ -281,46 +283,45 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
       {/* Status Section */}
       <StatusSection />
 
-      {/* Premium Search Bar */}
-      <div className="p-3 bg-whatsapp-light border-b-2 border-whatsapp-border shrink-0">
+      {/* Search Bar */}
+      <div className="p-3 bg-gray-50 border-b border-gray-200 shrink-0">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-whatsapp-secondary" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search or start new chat"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white text-whatsapp-text px-12 py-3 rounded-xl outline-none text-sm placeholder-whatsapp-secondary border-2 border-whatsapp-border focus:border-whatsapp-green focus:ring-4 focus:ring-whatsapp-green/10 transition-all duration-300 shadow-sm"
+            className="w-full bg-white text-gray-800 px-12 py-2.5 rounded-lg outline-none text-sm placeholder-gray-400 border border-gray-200 focus:border-slate-400 transition-all duration-200"
           />
         </div>
       </div>
 
-      {/* Chat List with Scroll Area */}
+      {/* Chat List */}
       <ScrollArea className="flex-1 bg-white">
-        <div className="p-2">
+        <div className="py-1">
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="animate-spin h-10 w-10 border-4 border-whatsapp-green border-t-transparent rounded-full"></div>
-                  <div className="absolute inset-0 animate-ping h-10 w-10 border-4 border-whatsapp-green/30 rounded-full"></div>
-                </div>
-                <p className="text-whatsapp-secondary text-sm font-medium">Loading chats...</p>
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin h-8 w-8 border-3 border-slate-600 border-t-transparent rounded-full"></div>
+                <p className="text-gray-500 text-sm">
+                  Loading chats...
+                </p>
               </div>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="text-center text-whatsapp-secondary py-12 px-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-whatsapp-green/20 to-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="h-10 w-10 text-whatsapp-green" />
+            <div className="text-center text-gray-500 py-12 px-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="h-8 w-8 text-slate-600" />
               </div>
-              <p className="text-whatsapp-text font-bold mb-2">
+              <p className="text-gray-800 font-semibold mb-1">
                 {searchQuery ? "No chats found" : "No conversations yet"}
               </p>
-              <p className="text-sm mb-4">Start messaging your friends and family</p>
+              <p className="text-sm mb-4">Start messaging your friends</p>
               {!searchQuery && (
                 <Button
                   onClick={() => setShowSearch(true)}
-                  className="bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green text-sm rounded-xl shadow-lg"
+                  className="bg-slate-700 hover:bg-slate-800 text-white text-sm rounded-lg"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Start a new chat
@@ -328,7 +329,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
               )}
             </div>
           ) : (
-            filteredConversations.map((chat, index) => {
+            filteredConversations.map((chat) => {
               const sender = getSender(user, chat.users);
               const isOnline = sender?.id ? onlineUsers.has(sender.id) : false;
               const isSelected = selectedChatId === chat.id;
@@ -338,77 +339,70 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
                   className={`
-                    flex items-center p-3 cursor-pointer rounded-xl mb-1
-                    transition-all duration-300 group animate-in fade-in slide-in-from-left
-                    ${
-                      isSelected
-                        ? "bg-gradient-to-r from-whatsapp-green/15 to-green-50 border-2 border-whatsapp-green/30 shadow-lg"
-                        : "hover:bg-whatsapp-light border-2 border-transparent hover:border-whatsapp-border"
-                    }
+                    flex items-center px-3 py-3 cursor-pointer
+                    transition-colors duration-150
+                    ${isSelected ? "bg-slate-100" : "hover:bg-gray-50"}
                   `}
-                  style={{ animationDelay: `${index * 30}ms` }}
                 >
                   {/* Avatar */}
                   <div className="relative flex-shrink-0 mr-3">
-                    <Avatar className={`h-14 w-14 ring-2 transition-all duration-300 ${
-                      isSelected ? 'ring-whatsapp-green shadow-lg' : 'ring-whatsapp-border group-hover:ring-whatsapp-green/50'
-                    }`}>
+                    <Avatar className="h-12 w-12">
                       <AvatarImage
                         src={
                           chat.isGroupChat
                             ? chat.avatar || undefined
                             : sender?.avatar || undefined
                         }
-                        alt={chat.isGroupChat ? chat.chatName || "Group" : sender?.name || "User"}
+                        alt={
+                          chat.isGroupChat
+                            ? chat.chatName || "Group"
+                            : sender?.name || "User"
+                        }
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white font-bold text-lg">
+                      <AvatarFallback className="bg-slate-600 text-white font-semibold">
                         {chat.isGroupChat
                           ? chat.chatName?.charAt(0).toUpperCase() || "G"
                           : sender?.name?.charAt(0).toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
                     {!chat.isGroupChat && isOnline && (
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-3 border-white shadow-lg animate-pulse"></div>
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
                     )}
                     {chat.isGroupChat && (
-                      <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-whatsapp-green to-green-600 rounded-full p-1.5 shadow-lg">
-                        <Users className="h-3 w-3 text-white" />
+                      <div className="absolute -bottom-0.5 -right-0.5 bg-slate-600 rounded-full p-1">
+                        <Users className="h-2.5 w-2.5 text-white" />
                       </div>
                     )}
                   </div>
 
                   {/* Chat Info */}
-                  <div className="flex-1 overflow-hidden min-w-0">
-                    <div className="flex justify-between items-center gap-2 mb-1">
-                      <p className={`font-bold truncate text-sm ${
-                        isSelected ? 'text-whatsapp-green' : 'text-whatsapp-text'
-                      }`}>
-                        {chat.isGroupChat ? chat.chatName : sender?.name || "Unknown"}
+                  <div className="flex-1 overflow-hidden min-w-0 border-b border-gray-100 py-1">
+                    <div className="flex justify-between items-center gap-2">
+                      <p className="font-medium truncate text-gray-800">
+                        {chat.isGroupChat
+                          ? chat.chatName
+                          : sender?.name || "Unknown"}
                       </p>
                       {chat.latestMessage && (
-                        <span className="text-xs text-whatsapp-secondary flex-shrink-0 font-medium">
+                        <span className="text-xs text-gray-500 flex-shrink-0">
                           {formatTime(chat.latestMessage.createdAt)}
                         </span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <p className="text-whatsapp-secondary text-xs truncate flex-1">
-                        {chat.latestMessage ? (
-                          <>
-                            {chat.latestMessage.sender.name === user?.name && (
-                              <span className="text-whatsapp-green font-semibold mr-1">You:</span>
-                            )}
-                            {chat.latestMessage.content || (
-                              <span className="italic flex items-center gap-1">
-                                📎 Media
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-whatsapp-secondary italic">Start a conversation</span>
-                        )}
-                      </p>
-                    </div>
+                    <p className="text-gray-600 text-sm truncate mt-0.5">
+                      {chat.latestMessage ? (
+                        <>
+                          {chat.latestMessage.sender.name === user?.name && (
+                            <span className="text-gray-500">
+                              You:{" "}
+                            </span>
+                          )}
+                          {chat.latestMessage.content || "📎 Media"}
+                        </>
+                      ) : (
+                        <span className="italic">Start a conversation</span>
+                      )}
+                    </p>
                   </div>
                 </div>
               );
@@ -432,7 +426,10 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         />
       )}
 
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 };

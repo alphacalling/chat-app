@@ -4,7 +4,16 @@ import { useAuth } from "../context/useAuth";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import { X, Smile, Trash2, ChevronLeft, ChevronRight, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  X,
+  Smile,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 
 interface Status {
@@ -20,8 +29,15 @@ interface Status {
     name: string;
     avatar?: string | null;
   };
-  views?: { userId: string; user?: { id: string; name: string; avatar?: string | null } }[];
-  reactions?: { userId: string; emoji: string; user?: { id: string; name: string; avatar?: string | null } }[];
+  views?: {
+    userId: string;
+    user?: { id: string; name: string; avatar?: string | null };
+  }[];
+  reactions?: {
+    userId: string;
+    emoji: string;
+    user?: { id: string; name: string; avatar?: string | null };
+  }[];
 }
 
 interface StatusViewerProps {
@@ -69,7 +85,6 @@ const StatusViewer = ({
     }
   }, [currentStatus, viewed, user?.id]);
 
-  // Auto-advance for images after 5 seconds
   useEffect(() => {
     if (currentStatus?.type !== "VIDEO" && currentIndex < statuses.length - 1) {
       const timer = setTimeout(() => {
@@ -145,7 +160,7 @@ const StatusViewer = ({
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-lg p-0 bg-transparent border-none shadow-none">
-        <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-3xl overflow-hidden shadow-2xl">
+        <div className="relative bg-gray-900 rounded-3xl overflow-hidden shadow-2xl">
           {/* Progress Bar */}
           <div className="absolute top-0 left-0 right-0 z-20 p-3">
             <div className="flex gap-1">
@@ -177,12 +192,12 @@ const StatusViewer = ({
           </div>
 
           {/* Header */}
-          <div className="absolute top-6 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent p-4 pt-6">
+          <div className="absolute top-6 left-0 right-0 z-20 bg-black/70 p-4 pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 ring-2 ring-white/50 shadow-lg">
                   <AvatarImage src={currentStatus.user?.avatar || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white font-bold">
+                  <AvatarFallback className="bg-slate-600 text-white font-bold">
                     {(currentStatus.user?.name || "?")[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -212,7 +227,7 @@ const StatusViewer = ({
           </div>
 
           {/* Status Content */}
-          <div className="relative min-h-[500px] flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+          <div className="relative min-h-[500px] flex items-center justify-center bg-gray-900">
             {currentStatus.type === "IMAGE" && currentStatus.mediaUrl && (
               <img
                 src={currentStatus.mediaUrl}
@@ -229,7 +244,7 @@ const StatusViewer = ({
               />
             )}
             {currentStatus.type === "TEXT" && (
-              <div className="p-8 text-center bg-gradient-to-br from-whatsapp-green to-green-600 w-full h-full min-h-[500px] flex items-center justify-center">
+              <div className="p-8 text-center bg-slate-700 w-full h-full min-h-[500px] flex items-center justify-center">
                 <p className="text-white text-2xl font-bold leading-relaxed max-w-md">
                   {currentStatus.content}
                 </p>
@@ -238,7 +253,7 @@ const StatusViewer = ({
 
             {/* Content Overlay for media with text */}
             {currentStatus.content && currentStatus.type !== "TEXT" && (
-              <div className="absolute bottom-24 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+              <div className="absolute bottom-24 left-0 right-0 bg-black/80 p-6">
                 <p className="text-white text-lg font-medium">
                   {currentStatus.content}
                 </p>
@@ -247,7 +262,7 @@ const StatusViewer = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-4">
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Reactions Display */}
@@ -346,7 +361,7 @@ const StatusViewer = ({
                     >
                       <Avatar className="h-8 w-8 ring-2 ring-white/30">
                         <AvatarImage src={v.user?.avatar || undefined} />
-                        <AvatarFallback className="bg-whatsapp-green/80 text-white text-xs">
+                        <AvatarFallback className="bg-slate-600 text-white text-xs">
                           {(v.user?.name || "?")[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -371,7 +386,7 @@ const StatusViewer = ({
                     >
                       <Avatar className="h-8 w-8 ring-2 ring-white/30">
                         <AvatarImage src={r.user?.avatar || undefined} />
-                        <AvatarFallback className="bg-whatsapp-green/80 text-white text-xs">
+                        <AvatarFallback className="bg-slate-600 text-white text-xs">
                           {(r.user?.name || "?")[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>

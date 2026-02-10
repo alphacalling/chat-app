@@ -300,16 +300,12 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
 
   const sender = selectedChat ? getSender(user, selectedChat.users) : null;
 
-  // Sync current user's name & avatar in this chat so header/list show updated profile
   useEffect(() => {
     if (selectedChat && user && selectedChat.users && onChatUpdate) {
       const userIndex = selectedChat.users.findIndex((u) => u.id === user.id);
       if (userIndex === -1) return;
       const current = selectedChat.users[userIndex];
-      if (
-        current.avatar !== user.avatar ||
-        current.name !== user.name
-      ) {
+      if (current.avatar !== user.avatar || current.name !== user.name) {
         const updatedUsers = [...selectedChat.users];
         updatedUsers[userIndex] = {
           ...updatedUsers[userIndex],
@@ -326,20 +322,20 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
 
   if (!selectedChat) {
     return (
-      <div className="w-full h-full bg-gradient-to-br from-whatsapp-light via-white to-gray-50 flex items-center justify-center">
+      <div className="w-full h-full bg-stone-50 flex items-center justify-center">
         <div className="text-center animate-in fade-in zoom-in duration-700">
           <div className="relative inline-block mb-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-whatsapp-green to-green-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-whatsapp-green/30">
+            <div className="w-24 h-24 bg-teal-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-teal-600/20">
               <MessageCircle className="w-12 h-12 text-white" />
             </div>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
               <span className="text-lg">💬</span>
             </div>
           </div>
-          <p className="text-whatsapp-text text-xl font-bold mb-2">
+          <p className="text-stone-700 text-xl font-bold mb-2">
             Select a chat to start messaging
           </p>
-          <p className="text-whatsapp-secondary text-sm">
+          <p className="text-stone-500 text-sm">
             Your conversations will appear here
           </p>
         </div>
@@ -348,11 +344,11 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-gradient-to-br from-whatsapp-light via-white to-gray-50">
-      {/* Premium Header */}
-      <div className="bg-white/90 backdrop-blur-xl border-b-2 border-whatsapp-border p-4 flex items-center justify-between flex-shrink-0 shadow-lg">
+    <div className="w-full h-full flex flex-col bg-stone-50">
+      {/* Header */}
+      <div className="bg-white border-b-2 border-stone-200 p-3.5 flex items-center justify-between flex-shrink-0 shadow-sm">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar className="h-12 w-12 ring-4 ring-whatsapp-green/20 shadow-lg transition-all duration-300 hover:ring-whatsapp-green/40">
+          <Avatar className="h-12 w-12 ring-4 ring-teal-100 shadow-lg transition-all duration-300 hover:ring-teal-200">
             <AvatarImage
               src={
                 selectedChat.isGroupChat
@@ -370,14 +366,14 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               }
               key={selectedChat.avatar || sender?.avatar}
             />
-            <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white font-bold text-lg">
+            <AvatarFallback className="bg-teal-600 text-white font-bold text-lg">
               {selectedChat.isGroupChat
                 ? selectedChat.chatName?.charAt(0).toUpperCase() || "G"
                 : sender?.name?.charAt(0).toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h2 className="text-whatsapp-text font-bold text-base flex items-center gap-2 truncate">
+            <h2 className="text-stone-800 font-bold text-base flex items-center gap-2 truncate">
               {selectedChat.isGroupChat
                 ? selectedChat.chatName
                 : sender?.name || "Unknown"}
@@ -387,12 +383,12 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
                 <div
                   className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                     otherUserOnline
-                      ? "bg-green-500 shadow-lg shadow-green-500/50 animate-pulse"
-                      : "bg-gray-400"
+                      ? "bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse"
+                      : "bg-stone-400"
                   }`}
                 />
               )}
-              <p className="text-xs text-whatsapp-secondary font-medium truncate">
+              <p className="text-xs text-stone-500 font-medium truncate">
                 {selectedChat.isGroupChat
                   ? `${selectedChat.users.length} members`
                   : otherUserOnline
@@ -408,24 +404,24 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 hover:bg-whatsapp-light transition-all duration-300 rounded-xl"
+                className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
               >
-                <Phone className="h-5 w-5 text-whatsapp-secondary hover:text-whatsapp-green transition-colors" />
+                <Phone className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 hover:bg-whatsapp-light transition-all duration-300 rounded-xl"
+                className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
               >
-                <Video className="h-5 w-5 text-whatsapp-secondary hover:text-whatsapp-green transition-colors" />
+                <Video className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 hover:bg-whatsapp-light transition-all duration-300 rounded-xl"
+                className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
                 onClick={() => setShowUserProfile(true)}
               >
-                <Info className="h-5 w-5 text-whatsapp-secondary hover:text-whatsapp-green transition-colors" />
+                <Info className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
               </Button>
             </>
           )}
@@ -434,33 +430,33 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               variant="ghost"
               size="icon"
               onClick={() => setShowGroupInfo(true)}
-              className="h-10 w-10 hover:bg-whatsapp-light transition-all duration-300 rounded-xl"
+              className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
             >
-              <Info className="h-5 w-5 text-whatsapp-secondary hover:text-whatsapp-green transition-colors" />
+              <Info className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
             </Button>
           )}
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 hover:bg-whatsapp-light transition-all duration-300 rounded-xl"
+            className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
           >
-            <MoreVertical className="h-5 w-5 text-whatsapp-secondary hover:text-whatsapp-green transition-colors" />
+            <MoreVertical className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
           </Button>
         </div>
       </div>
 
       {/* Pinned Message Banner */}
       {pinnedMessage && (
-        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-b-2 border-yellow-200 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="bg-amber-50 border-b-2 border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center">
-              <Pin className="h-5 w-5 text-yellow-700" />
+            <div className="flex-shrink-0 w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center">
+              <Pin className="h-5 w-5 text-amber-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-yellow-700 font-semibold mb-0.5">
+              <p className="text-xs text-amber-700 font-semibold mb-0.5">
                 Pinned Message
               </p>
-              <p className="text-sm text-whatsapp-text font-medium truncate">
+              <p className="text-sm text-stone-700 font-medium truncate">
                 {pinnedMessage.content || "Media"}
               </p>
             </div>
@@ -472,7 +468,7 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               );
               element?.scrollIntoView({ behavior: "smooth", block: "center" });
             }}
-            className="text-whatsapp-green hover:text-green-700 text-sm font-bold px-4 py-2 hover:bg-yellow-200 rounded-lg transition-all duration-300"
+            className="text-teal-600 hover:text-teal-700 text-sm font-bold px-4 py-2 hover:bg-amber-100 rounded-lg transition-all duration-300"
           >
             Jump
           </button>
@@ -480,16 +476,16 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
       )}
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-whatsapp-light/30">
+      <ScrollArea className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-stone-100/30">
         <div className="p-4 space-y-1">
           {loading ? (
             <div className="flex justify-center items-center h-full py-12">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
-                  <div className="animate-spin h-12 w-12 border-4 border-whatsapp-green border-t-transparent rounded-full"></div>
-                  <div className="absolute inset-0 animate-ping h-12 w-12 border-4 border-whatsapp-green/30 rounded-full"></div>
+                  <div className="animate-spin h-12 w-12 border-4 border-teal-600 border-t-transparent rounded-full"></div>
+                  <div className="absolute inset-0 animate-ping h-12 w-12 border-4 border-teal-600/30 rounded-full"></div>
                 </div>
-                <p className="text-whatsapp-secondary text-sm font-medium">
+                <p className="text-stone-500 text-sm font-medium">
                   Loading messages...
                 </p>
               </div>
@@ -498,10 +494,10 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
             <div className="flex items-center justify-center h-full py-12">
               <div className="text-center animate-in fade-in zoom-in duration-500">
                 <div className="text-6xl mb-4">👋</div>
-                <p className="text-whatsapp-text font-bold text-lg mb-1">
+                <p className="text-stone-700 font-bold text-lg mb-1">
                   No messages yet
                 </p>
-                <p className="text-whatsapp-secondary text-sm">
+                <p className="text-stone-500 text-sm">
                   Say hello to start the conversation!
                 </p>
               </div>
@@ -518,7 +514,9 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
                   }`}
                   style={{ animationDelay: `${index * 20}ms` }}
                 >
-                  <div className={`max-w-[75%] ${isOwn ? "ml-auto" : "mr-auto"}`}>
+                  <div
+                    className={`max-w-[75%] ${isOwn ? "ml-auto" : "mr-auto"}`}
+                  >
                     <MessageBubble
                       message={message}
                       isOwn={isOwn}
@@ -539,29 +537,29 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
 
       {/* Reply Preview */}
       {replyingTo && (
-        <div className="border-t-2 border-whatsapp-border bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 flex items-center justify-between shadow-lg">
+        <div className="border-t-2 border-stone-200 bg-teal-50 px-4 py-3 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-1 h-12 bg-gradient-to-b from-whatsapp-green to-green-600 rounded-full"></div>
+            <div className="w-1 h-12 bg-teal-500 rounded-full"></div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-whatsapp-green font-bold mb-1">
+              <p className="text-xs text-teal-700 font-bold mb-1">
                 Replying to {replyingTo.sender.name}
               </p>
-              <p className="text-sm text-whatsapp-text font-medium truncate">
+              <p className="text-sm text-stone-700 font-medium truncate">
                 {replyingTo.content || "Media"}
               </p>
             </div>
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="text-whatsapp-secondary hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all duration-300"
+            className="text-stone-500 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all duration-300"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
       )}
 
-      {/* Message Input - z-20 so input/emoji stay above messages and picker can sit on top */}
-      <div className="relative z-20 border-t-2 border-whatsapp-border bg-white/95 backdrop-blur-xl p-4 flex-shrink-0 shadow-2xl">
+      {/* Message Input */}
+      <div className="relative z-20 border-t-2 border-stone-200 bg-white p-4 flex-shrink-0 shadow-2xl">
         <MessageInput
           onSendMessage={handleSendMessage}
           onSendMedia={handleSendMedia}

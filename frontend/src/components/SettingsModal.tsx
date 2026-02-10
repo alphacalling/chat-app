@@ -44,7 +44,6 @@ const SettingsModal = ({
   const [copied, setCopied] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
@@ -173,10 +172,10 @@ const SettingsModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg max-h-[90vh] bg-white border-2 border-whatsapp-border rounded-3xl shadow-2xl overflow-hidden">
-          <DialogHeader className="border-b-2 border-whatsapp-border pb-4 bg-gradient-to-r from-whatsapp-green/5 to-green-50">
-            <DialogTitle className="text-whatsapp-text flex items-center gap-3 text-xl font-bold">
-              <div className="w-10 h-10 bg-gradient-to-br from-whatsapp-green to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] bg-white border-2 border-gray-200 rounded-3xl shadow-2xl overflow-hidden">
+          <DialogHeader className="border-b-2 border-gray-200 pb-4 bg-gray-50">
+            <DialogTitle className="text-gray-800 flex items-center gap-3 text-xl font-bold">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shadow-lg">
                 <User className="h-5 w-5 text-white" />
               </div>
               Settings
@@ -187,8 +186,8 @@ const SettingsModal = ({
             {/* Profile Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-whatsapp-text font-bold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-whatsapp-green" />
+                <h3 className="text-gray-800 font-bold flex items-center gap-2">
+                  <Info className="h-4 w-4 text-slate-600" />
                   Profile Information
                 </h3>
                 {!isEditingProfile && (
@@ -196,7 +195,7 @@ const SettingsModal = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-whatsapp-green hover:bg-whatsapp-green/10 rounded-xl"
+                    className="text-slate-600 rounded-xl"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
@@ -204,11 +203,11 @@ const SettingsModal = ({
                 )}
               </div>
 
-              <div className="bg-gradient-to-br from-whatsapp-light/50 to-white p-5 rounded-2xl border-2 border-whatsapp-border">
+              <div className="bg-gray-50 p-5 rounded-2xl border-2 border-gray-200">
                 <div className="flex items-start gap-5">
                   {/* Avatar */}
                   <div className="relative group">
-                    <Avatar className="h-24 w-24 ring-4 ring-whatsapp-green/30 shadow-xl transition-all duration-300 group-hover:ring-whatsapp-green/50">
+                    <Avatar className="h-24 w-24 ring-4 ring-slate-200 shadow-xl transition-all duration-300 group-hover:ring-slate-300">
                       <AvatarImage
                         src={
                           user?.avatar
@@ -217,12 +216,12 @@ const SettingsModal = ({
                         }
                         key={user?.avatar}
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white text-2xl font-bold">
+                      <AvatarFallback className="bg-slate-600 text-white text-2xl font-bold">
                         {user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <label
-                      className={`absolute bottom-0 right-0 bg-gradient-to-r from-whatsapp-green to-green-600 rounded-full p-2.5 cursor-pointer hover:from-green-600 hover:to-whatsapp-green transition-all duration-300 shadow-lg hover:scale-110 ${uploadingAvatar ? "animate-pulse" : ""}`}
+                      className={`absolute bottom-0 right-0 bg-slate-700 rounded-full p-2.5 cursor-pointer hover:bg-slate-800 transition-all duration-300 shadow-lg hover:scale-110 ${uploadingAvatar ? "animate-pulse" : ""}`}
                     >
                       {uploadingAvatar ? (
                         <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -243,7 +242,7 @@ const SettingsModal = ({
                   {isEditingProfile ? (
                     <div className="flex-1 space-y-4">
                       <div>
-                        <label className="text-whatsapp-secondary text-xs font-bold mb-1.5 flex items-center gap-1">
+                        <label className="text-gray-600 text-xs font-bold mb-1.5 flex items-center gap-1">
                           <User className="h-3 w-3" />
                           Name
                         </label>
@@ -255,12 +254,12 @@ const SettingsModal = ({
                               name: e.target.value,
                             })
                           }
-                          className="bg-white border-2 border-whatsapp-border focus:border-whatsapp-green rounded-xl h-11"
+                          className="bg-white border-2 border-gray-200 focus:border-slate-400 rounded-xl h-11"
                           placeholder="Your name"
                         />
                       </div>
                       <div>
-                        <label className="text-whatsapp-secondary text-xs font-bold mb-1.5 flex items-center gap-1">
+                        <label className="text-gray-600 text-xs font-bold mb-1.5 flex items-center gap-1">
                           <Info className="h-3 w-3" />
                           About
                         </label>
@@ -272,12 +271,12 @@ const SettingsModal = ({
                               about: e.target.value,
                             })
                           }
-                          className="bg-white border-2 border-whatsapp-border focus:border-whatsapp-green rounded-xl h-11"
-                          placeholder="Hey there! I am using WhatsApp"
+                          className="bg-white border-2 border-gray-200 focus:border-slate-400 rounded-xl h-11"
+                          placeholder="Hey there!"
                         />
                       </div>
                       <div>
-                        <label className="text-whatsapp-secondary text-xs font-bold mb-1.5 flex items-center gap-1">
+                        <label className="text-gray-600 text-xs font-bold mb-1.5 flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           Email
                         </label>
@@ -290,12 +289,12 @@ const SettingsModal = ({
                               email: e.target.value,
                             })
                           }
-                          className="bg-white border-2 border-whatsapp-border focus:border-whatsapp-green rounded-xl h-11"
+                          className="bg-white border-2 border-gray-200 focus:border-slate-400 rounded-xl h-11"
                           placeholder="your@email.com"
                         />
                       </div>
                       <div>
-                        <label className="text-whatsapp-secondary text-xs font-bold mb-1.5 flex items-center gap-1">
+                        <label className="text-gray-600 text-xs font-bold mb-1.5 flex items-center gap-1">
                           <User className="h-3 w-3" />
                           Gender
                         </label>
@@ -307,7 +306,7 @@ const SettingsModal = ({
                               gender: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 bg-white border-2 border-whatsapp-border rounded-xl text-whatsapp-text text-sm focus:outline-none focus:border-whatsapp-green transition-all duration-300"
+                          className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-slate-400 transition-all duration-300"
                         >
                           <option value="">Not specified</option>
                           <option value="MALE">Male</option>
@@ -319,7 +318,7 @@ const SettingsModal = ({
                         <Button
                           onClick={handleSaveProfile}
                           disabled={savingProfile}
-                          className="flex-1 bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green rounded-xl h-11 font-bold shadow-lg"
+                          className="flex-1 bg-slate-700 hover:bg-slate-800 rounded-xl h-11 font-bold shadow-lg"
                         >
                           {savingProfile ? (
                             <div className="flex items-center gap-2">
@@ -353,27 +352,27 @@ const SettingsModal = ({
                   ) : (
                     <div className="flex-1 space-y-2">
                       <div>
-                        <p className="text-whatsapp-text font-bold text-lg">
+                        <p className="text-gray-800 font-bold text-lg">
                           {user?.name}
                         </p>
-                        <p className="text-whatsapp-secondary text-sm mt-1">
-                          {user?.about || "Hey there! I am using WhatsApp"}
+                        <p className="text-gray-600 text-sm mt-1">
+                          {user?.about || "Hey there!"}
                         </p>
                       </div>
                       <div className="space-y-1.5 pt-2">
-                        <p className="text-whatsapp-secondary text-xs flex items-center gap-2">
-                          <Phone className="h-3.5 w-3.5 text-whatsapp-green" />
+                        <p className="text-gray-600 text-xs flex items-center gap-2">
+                          <Phone className="h-3.5 w-3.5 text-slate-600" />
                           {user?.phone}
                         </p>
                         {user?.email && (
-                          <p className="text-whatsapp-secondary text-xs flex items-center gap-2">
-                            <Mail className="h-3.5 w-3.5 text-whatsapp-green" />
+                          <p className="text-gray-600 text-xs flex items-center gap-2">
+                            <Mail className="h-3.5 w-3.5 text-slate-600" />
                             {user.email}
                           </p>
                         )}
                         {user?.gender && (
-                          <p className="text-whatsapp-secondary text-xs flex items-center gap-2">
-                            <User className="h-3.5 w-3.5 text-whatsapp-green" />
+                          <p className="text-gray-600 text-xs flex items-center gap-2">
+                            <User className="h-3.5 w-3.5 text-slate-600" />
                             {user.gender === "MALE"
                               ? "Male"
                               : user.gender === "FEMALE"
@@ -390,13 +389,13 @@ const SettingsModal = ({
 
             {/* Security Section */}
             <div className="space-y-4">
-              <h3 className="text-whatsapp-text font-bold flex items-center gap-2">
-                <Lock className="h-4 w-4 text-whatsapp-green" />
+              <h3 className="text-gray-800 font-bold flex items-center gap-2">
+                <Lock className="h-4 w-4 text-slate-600" />
                 Security
               </h3>
 
               {/* TOTP */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border-2 border-blue-200">
+              <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200">
                 <div
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setShowTOTP(!showTOTP)}
@@ -404,9 +403,7 @@ const SettingsModal = ({
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
-                        totpEnabled
-                          ? "bg-gradient-to-br from-green-500 to-green-600"
-                          : "bg-gradient-to-br from-gray-400 to-gray-500"
+                        totpEnabled ? "bg-emerald-500" : "bg-gray-400"
                       }`}
                     >
                       {totpEnabled ? (
@@ -416,12 +413,12 @@ const SettingsModal = ({
                       )}
                     </div>
                     <div>
-                      <p className="text-whatsapp-text font-bold text-sm">
+                      <p className="text-gray-800 font-bold text-sm">
                         Two-Factor Authentication
                       </p>
-                      <p className="text-whatsapp-secondary text-xs">
+                      <p className="text-gray-600 text-xs">
                         {totpEnabled ? (
-                          <span className="text-green-600 font-semibold flex items-center gap-1">
+                          <span className="text-emerald-600 font-semibold flex items-center gap-1">
                             <Check className="h-3 w-3" /> Enabled
                           </span>
                         ) : (
@@ -431,7 +428,7 @@ const SettingsModal = ({
                     </div>
                   </div>
                   <ChevronRight
-                    className={`h-5 w-5 text-whatsapp-secondary transition-transform duration-300 ${showTOTP ? "rotate-90" : ""}`}
+                    className={`h-5 w-5 text-gray-600 transition-transform duration-300 ${showTOTP ? "rotate-90" : ""}`}
                   />
                 </div>
 
@@ -442,7 +439,7 @@ const SettingsModal = ({
                         {!qrCode ? (
                           <Button
                             onClick={handleGenerateTOTP}
-                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-xl h-11 font-bold shadow-lg"
+                            className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl h-11 font-bold shadow-lg"
                           >
                             <Sparkles className="h-4 w-4 mr-2" />
                             Generate QR Code
@@ -450,7 +447,7 @@ const SettingsModal = ({
                         ) : (
                           <>
                             <div className="text-center bg-white p-4 rounded-xl border-2 border-blue-200">
-                              <p className="text-whatsapp-text text-sm font-semibold mb-3">
+                              <p className="text-gray-800 text-sm font-semibold mb-3">
                                 Scan with your authenticator app
                               </p>
                               <img
@@ -469,7 +466,7 @@ const SettingsModal = ({
                               />
                               <Button
                                 onClick={handleEnableTOTP}
-                                className="w-full bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green rounded-xl h-11 font-bold"
+                                className="w-full bg-slate-700 hover:bg-slate-800 rounded-xl h-11 font-bold"
                               >
                                 <ShieldCheck className="h-4 w-4 mr-2" />
                                 Enable TOTP
@@ -519,7 +516,7 @@ const SettingsModal = ({
                         <Button
                           variant="destructive"
                           onClick={handleDisableTOTP}
-                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl h-11 font-bold"
+                          className="w-full bg-red-600 hover:bg-red-700 rounded-xl h-11 font-bold"
                         >
                           <ShieldOff className="h-4 w-4 mr-2" />
                           Disable Two-Factor Auth
@@ -532,24 +529,24 @@ const SettingsModal = ({
 
               {/* Blocked Users */}
               <div
-                className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-2xl border-2 border-red-200 cursor-pointer hover:border-red-300 transition-all duration-300"
+                className="bg-red-50 p-4 rounded-2xl border-2 border-red-200 cursor-pointer hover:border-red-300 transition-all duration-300"
                 onClick={() => setShowBlocked(true)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
                       <UserX className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-whatsapp-text font-bold text-sm">
+                      <p className="text-gray-800 font-bold text-sm">
                         Blocked Users
                       </p>
-                      <p className="text-whatsapp-secondary text-xs">
+                      <p className="text-gray-600 text-xs">
                         Manage blocked contacts
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-whatsapp-secondary" />
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
                 </div>
               </div>
             </div>

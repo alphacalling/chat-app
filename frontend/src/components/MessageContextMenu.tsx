@@ -32,6 +32,7 @@ const MessageContextMenu = ({
       onClick: onReply,
       show: true,
       color: "text-blue-600 hover:bg-blue-50",
+      iconBg: "bg-blue-100 group-hover:bg-blue-200",
     },
     {
       icon: Smile,
@@ -39,6 +40,7 @@ const MessageContextMenu = ({
       onClick: onReact,
       show: true,
       color: "text-amber-600 hover:bg-amber-50",
+      iconBg: "bg-amber-100 group-hover:bg-amber-200",
     },
     {
       icon: isPinned ? PinOff : Pin,
@@ -46,13 +48,15 @@ const MessageContextMenu = ({
       onClick: onPin,
       show: true,
       color: "text-purple-600 hover:bg-purple-50",
+      iconBg: "bg-purple-100 group-hover:bg-purple-200",
     },
     {
       icon: Edit,
       label: "Edit",
       onClick: onEdit,
       show: isOwn,
-      color: "text-whatsapp-green hover:bg-green-50",
+      color: "text-teal-600 hover:bg-teal-50",
+      iconBg: "bg-teal-100 group-hover:bg-teal-200",
     },
     {
       icon: Trash2,
@@ -61,6 +65,7 @@ const MessageContextMenu = ({
       show: isOwn,
       danger: true,
       color: "text-red-600 hover:bg-red-50",
+      iconBg: "bg-red-100 group-hover:bg-red-200",
     },
   ].filter((item) => item.show && item.onClick);
 
@@ -74,15 +79,15 @@ const MessageContextMenu = ({
 
       {/* Context Menu */}
       <div
-        className="fixed z-50 bg-white border-2 border-whatsapp-border rounded-2xl shadow-2xl py-2 min-w-[200px] animate-in fade-in zoom-in duration-200 origin-top-left"
+        className="fixed z-50 bg-white border-2 border-stone-200 rounded-2xl shadow-2xl py-2 min-w-[200px] animate-in fade-in zoom-in duration-200 origin-top-left"
         style={{
           left: `${Math.min(x, window.innerWidth - 220)}px`,
           top: `${Math.min(y, window.innerHeight - 300)}px`,
         }}
       >
         {/* Header */}
-        <div className="px-4 py-2 border-b-2 border-whatsapp-border mb-1">
-          <p className="text-xs font-bold text-whatsapp-secondary uppercase tracking-wider">
+        <div className="px-4 py-2 border-b-2 border-stone-200 mb-1">
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">
             Actions
           </p>
         </div>
@@ -99,11 +104,7 @@ const MessageContextMenu = ({
               className={`w-full px-4 py-3 text-left text-sm transition-all duration-300 flex items-center gap-3 ${item.color} group`}
             >
               <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                  item.danger
-                    ? "bg-red-100 group-hover:bg-red-200"
-                    : "bg-whatsapp-light group-hover:bg-opacity-80"
-                }`}
+                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${item.iconBg}`}
               >
                 <Icon className="h-4 w-4" />
               </div>
@@ -112,13 +113,13 @@ const MessageContextMenu = ({
           );
         })}
 
-        <div className="border-t-2 border-whatsapp-border my-1" />
+        <div className="border-t-2 border-stone-200 my-1" />
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-3 text-left text-sm text-whatsapp-secondary hover:bg-whatsapp-light hover:text-whatsapp-text transition-all duration-300 flex items-center gap-3 group"
+          className="w-full px-4 py-3 text-left text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-all duration-300 flex items-center gap-3 group"
         >
-          <div className="w-8 h-8 rounded-xl bg-whatsapp-light group-hover:bg-gray-200 flex items-center justify-center transition-all duration-300">
+          <div className="w-8 h-8 rounded-xl bg-stone-100 group-hover:bg-stone-200 flex items-center justify-center transition-all duration-300">
             <X className="h-4 w-4" />
           </div>
           <span className="font-semibold">Cancel</span>

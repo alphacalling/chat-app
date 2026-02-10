@@ -36,7 +36,9 @@ const StatusSection = () => {
   const [viewerStatuses, setViewerStatuses] = useState<Status[]>([]);
   const [statusContent, setStatusContent] = useState("");
   const [statusFile, setStatusFile] = useState<File | null>(null);
-  const [statusType, setStatusType] = useState<"TEXT" | "IMAGE" | "VIDEO">("TEXT");
+  const [statusType, setStatusType] = useState<"TEXT" | "IMAGE" | "VIDEO">(
+    "TEXT",
+  );
   const [creating, setCreating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [showMyStatusPicker, setShowMyStatusPicker] = useState(false);
@@ -77,7 +79,11 @@ const StatusSection = () => {
 
     try {
       setCreating(true);
-      await statusAPI.createStatus(statusFile || undefined, statusContent || undefined, statusType);
+      await statusAPI.createStatus(
+        statusFile || undefined,
+        statusContent || undefined,
+        statusType,
+      );
       setShowCreate(false);
       setStatusContent("");
       setStatusFile(null);
@@ -93,7 +99,9 @@ const StatusSection = () => {
   };
 
   const handleViewStatus = (userStatuses: any[], index: number) => {
-    const allStatuses = userStatuses.flatMap((group: any) => group.statuses || []);
+    const allStatuses = userStatuses.flatMap(
+      (group: any) => group.statuses || [],
+    );
     setViewerStatuses(allStatuses);
     setViewerIndex(index);
     setShowViewer(true);
@@ -143,7 +151,7 @@ const StatusSection = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-whatsapp-light to-white border-b-2 border-whatsapp-border p-4">
+    <div className="bg-gray-50 border-b-2 border-gray-200 p-4">
       <ScrollArea className="w-full">
         <div className="flex gap-4">
           {/* My Status */}
@@ -152,32 +160,36 @@ const StatusSection = () => {
             onClick={handleMyStatusClick}
           >
             <div className="relative">
-              <Avatar className={`h-16 w-16 ring-4 transition-all duration-300 group-hover:scale-105 ${
-                myStatuses.length > 0 
-                  ? 'ring-whatsapp-green shadow-lg shadow-whatsapp-green/30' 
-                  : 'ring-gray-300'
-              }`}>
-                <AvatarImage 
-                  src={user?.avatar 
-                    ? `${user.avatar}${user.avatar.includes('?') ? '&' : '?'}t=${Date.now()}`
-                    : undefined
+              <Avatar
+                className={`h-15 w-15 m-1 ring-4 transition-all duration-300 group-hover:scale-105 ${
+                  myStatuses.length > 0
+                    ? "ring-slate-600 shadow-lg shadow-slate-600/30"
+                    : "ring-gray-300"
+                }`}
+              >
+                <AvatarImage
+                  src={
+                    user?.avatar
+                      ? `${user.avatar}${user.avatar.includes("?") ? "&" : "?"}t=${Date.now()}`
+                      : undefined
                   }
                   key={user?.avatar}
                 />
-                <AvatarFallback className="bg-gradient-to-br from-whatsapp-green to-green-600 text-white font-bold text-lg">
+                <AvatarFallback className="bg-slate-600 text-white font-bold text-lg">
                   {user?.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-whatsapp-green to-green-600 rounded-full p-2 border-3 border-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="absolute -bottom-1 -right-1 bg-slate-700 rounded-full p-2 border-3 border-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <Plus className="h-3.5 w-3.5 text-white" />
               </div>
             </div>
-            <p className="text-xs text-whatsapp-text font-semibold mt-2 text-center truncate w-16">
+            <p className="text-xs text-gray-800 font-semibold mt-2 text-center truncate w-16">
               My Status
             </p>
             {myStatuses.length > 0 && (
-              <p className="text-xs text-whatsapp-secondary text-center">
-                {myStatuses.length} {myStatuses.length === 1 ? 'update' : 'updates'}
+              <p className="text-xs text-gray-600 text-center">
+                {myStatuses.length}{" "}
+                {myStatuses.length === 1 ? "update" : "updates"}
               </p>
             )}
           </div>
@@ -196,28 +208,35 @@ const StatusSection = () => {
                 onClick={() => handleViewStatus([userStatus], 0)}
               >
                 <div className="relative">
-                  <Avatar className={`h-16 w-16 ring-4 transition-all duration-300 group-hover:scale-105 ${
-                    hasUnviewed 
-                      ? 'ring-whatsapp-green shadow-lg shadow-whatsapp-green/30' 
-                      : 'ring-gray-300'
-                  }`}>
+                  <Avatar
+                    className={`h-16 w-16 ring-4 transition-all duration-300 group-hover:scale-105 ${
+                      hasUnviewed
+                        ? "ring-slate-600 shadow-lg shadow-slate-600/30"
+                        : "ring-gray-300"
+                    }`}
+                  >
                     <AvatarImage src={userStatus.user.avatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-gray-400 to-gray-500 text-white font-bold text-lg">
+                    <AvatarFallback className="bg-gray-500 text-white font-bold text-lg">
                       {userStatus.user.name[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   {hasUnviewed && (
                     <div className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
                       <span className="text-white text-xs font-bold">
-                        {userStatus.statuses.filter((s: Status) => 
-                          !(s.views || []).find((v: any) => v.userId === user?.id)
-                        ).length}
+                        {
+                          userStatus.statuses.filter(
+                            (s: Status) =>
+                              !(s.views || []).find(
+                                (v: any) => v.userId === user?.id,
+                              ),
+                          ).length
+                        }
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-whatsapp-text font-semibold mt-2 text-center truncate w-16">
-                  {userStatus.user.name.split(' ')[0]}
+                <p className="text-xs text-gray-800 font-semibold mt-2 text-center truncate w-16">
+                  {userStatus.user.name.split(" ")[0]}
                 </p>
               </div>
             );
@@ -227,41 +246,49 @@ const StatusSection = () => {
 
       {/* Create Status Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md bg-white border-2 border-whatsapp-border rounded-3xl shadow-2xl">
-          <DialogHeader className="border-b-2 border-whatsapp-border pb-4">
-            <DialogTitle className="text-whatsapp-text flex items-center gap-2 text-xl font-bold">
-              <Sparkles className="h-5 w-5 text-whatsapp-green" />
+        <DialogContent className="max-w-md bg-white border-2 border-gray-200 rounded-3xl shadow-2xl">
+          <DialogHeader className="border-b-2 border-gray-200 pb-4">
+            <DialogTitle className="text-gray-800 flex items-center gap-2 text-xl font-bold">
+              <Sparkles className="h-5 w-5 text-slate-600" />
               Create Status
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 pt-2">
             {/* Text Input */}
             <div>
-              <label className="text-sm font-bold text-whatsapp-text mb-2 flex items-center gap-2">
-                <Type className="h-4 w-4 text-whatsapp-green" />
+              <label className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <Type className="h-4 w-4 text-slate-600" />
                 What's on your mind?
               </label>
               <Input
                 value={statusContent}
                 onChange={(e) => setStatusContent(e.target.value)}
                 placeholder="Share your thoughts..."
-                className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green rounded-xl h-12"
+                className="bg-gray-50 border-2 border-gray-200 focus:border-slate-400 rounded-xl h-12"
               />
             </div>
 
             {/* Media Upload */}
             <div>
-              <label className="text-sm font-bold text-whatsapp-text mb-2 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-whatsapp-green" />
+              <label className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-slate-600" />
                 Add Media (optional)
               </label>
-              
+
               {previewUrl ? (
-                <div className="relative rounded-xl overflow-hidden border-2 border-whatsapp-border">
+                <div className="relative rounded-xl overflow-hidden border-2 border-gray-200">
                   {statusType === "IMAGE" ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover" />
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-48 object-cover"
+                    />
                   ) : (
-                    <video src={previewUrl} className="w-full h-48 object-cover" controls />
+                    <video
+                      src={previewUrl}
+                      className="w-full h-48 object-cover"
+                      controls
+                    />
                   )}
                   <button
                     onClick={clearFile}
@@ -278,22 +305,24 @@ const StatusSection = () => {
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  <div className="border-3 border-dashed border-whatsapp-border rounded-xl p-8 text-center cursor-pointer hover:border-whatsapp-green hover:bg-whatsapp-green/5 transition-all duration-300 group">
-                    <div className="w-16 h-16 bg-gradient-to-br from-whatsapp-green/20 to-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <Camera className="h-8 w-8 text-whatsapp-green" />
+                  <div className="border-3 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all duration-300 group">
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <Camera className="h-8 w-8 text-slate-600" />
                     </div>
-                    <p className="text-whatsapp-text font-semibold mb-1">Click to upload</p>
-                    <p className="text-whatsapp-secondary text-xs">Images or Videos</p>
+                    <p className="text-gray-800 font-semibold mb-1">
+                      Click to upload
+                    </p>
+                    <p className="text-gray-600 text-xs">Images or Videos</p>
                   </div>
                 </label>
               )}
             </div>
 
             {/* Create Button */}
-            <Button 
-              onClick={handleCreateStatus} 
+            <Button
+              onClick={handleCreateStatus}
               disabled={creating || (!statusContent && !statusFile)}
-              className="w-full bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green rounded-xl h-12 font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-slate-700 hover:bg-slate-800 rounded-xl h-12 font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {creating ? (
                 <div className="flex items-center gap-2">
@@ -313,9 +342,9 @@ const StatusSection = () => {
 
       {/* My Status Picker - when you have statuses, choose view or add new */}
       <Dialog open={showMyStatusPicker} onOpenChange={setShowMyStatusPicker}>
-        <DialogContent className="max-w-sm bg-white border-2 border-whatsapp-border rounded-2xl shadow-2xl p-0 overflow-hidden">
-          <DialogHeader className="p-4 border-b border-whatsapp-border">
-            <DialogTitle className="text-whatsapp-text text-lg font-bold">
+        <DialogContent className="max-w-sm bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b border-gray-200">
+            <DialogTitle className="text-gray-800 text-lg font-bold">
               My Status
             </DialogTitle>
           </DialogHeader>
@@ -325,7 +354,7 @@ const StatusSection = () => {
                 key={status.id}
                 type="button"
                 onClick={() => openViewerFromPicker(index)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-whatsapp-light/50 transition-colors text-left border-b border-whatsapp-border last:border-b-0"
+                className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
               >
                 <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
                   {status.type === "IMAGE" && status.mediaUrl ? (
@@ -342,11 +371,11 @@ const StatusSection = () => {
                       playsInline
                     />
                   ) : (
-                    <Type className="h-6 w-6 text-whatsapp-secondary" />
+                    <Type className="h-6 w-6 text-gray-600" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-whatsapp-text font-medium truncate">
+                  <p className="text-gray-800 font-medium truncate">
                     {status.type === "TEXT" && status.content
                       ? status.content
                       : status.type === "IMAGE"
@@ -355,7 +384,7 @@ const StatusSection = () => {
                           ? "Video"
                           : "Status"}
                   </p>
-                  <p className="text-whatsapp-secondary text-xs">
+                  <p className="text-gray-600 text-xs">
                     {new Date(status.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -367,16 +396,14 @@ const StatusSection = () => {
             <button
               type="button"
               onClick={openCreateFromPicker}
-              className="w-full flex items-center gap-3 p-4 hover:bg-whatsapp-green/10 transition-colors text-left border-t-2 border-dashed border-whatsapp-border"
+              className="w-full flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors text-left border-t-2 border-dashed border-gray-300"
             >
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-whatsapp-green/20 flex items-center justify-center border-2 border-dashed border-whatsapp-green">
-                <Plus className="h-7 w-7 text-whatsapp-green" />
+              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-400">
+                <Plus className="h-7 w-7 text-slate-600" />
               </div>
               <div className="flex-1">
-                <p className="text-whatsapp-green font-semibold">Add new status</p>
-                <p className="text-whatsapp-secondary text-xs">
-                  Share a new update
-                </p>
+                <p className="text-slate-700 font-semibold">Add new status</p>
+                <p className="text-gray-600 text-xs">Share a new update</p>
               </div>
             </button>
           </div>
@@ -393,11 +420,15 @@ const StatusSection = () => {
             fetchStatuses();
             fetchMyStatuses();
           }}
-          onNext={() => setViewerIndex((prev) => Math.min(prev + 1, viewerStatuses.length - 1))}
+          onNext={() =>
+            setViewerIndex((prev) =>
+              Math.min(prev + 1, viewerStatuses.length - 1),
+            )
+          }
           onPrev={() => setViewerIndex((prev) => Math.max(prev - 1, 0))}
           onStatusUpdate={(updatedStatus) => {
             setViewerStatuses((prev) =>
-              prev.map((s) => (s.id === updatedStatus.id ? updatedStatus : s))
+              prev.map((s) => (s.id === updatedStatus.id ? updatedStatus : s)),
             );
           }}
         />

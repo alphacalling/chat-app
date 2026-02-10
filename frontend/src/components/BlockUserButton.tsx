@@ -62,7 +62,7 @@ export const BlockUserButton = ({
       disabled={loading}
       className={`transition-all duration-300 ${
         isBlocked
-          ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+          ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
           : "text-red-600 hover:text-red-700 hover:bg-red-50"
       }`}
     >
@@ -117,31 +117,27 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white border-whatsapp-border shadow-2xl rounded-2xl">
+      <DialogContent className="max-w-md bg-white border-gray-200 shadow-2xl rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-whatsapp-text flex items-center gap-2 text-xl">
+          <DialogTitle className="text-gray-800 flex items-center gap-2 text-xl">
             <Shield className="h-5 w-5 text-red-500" />
             Blocked Users
           </DialogTitle>
-          <DialogDescription className="text-whatsapp-secondary">
+          <DialogDescription className="text-gray-600">
             Manage users you have blocked
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-96 pr-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin h-10 w-10 border-4 border-whatsapp-green border-t-transparent rounded-full mb-3"></div>
-              <p className="text-whatsapp-secondary text-sm">
-                Loading blocked users...
-              </p>
+              <div className="animate-spin h-10 w-10 border-4 border-slate-600 border-t-transparent rounded-full mb-3"></div>
+              <p className="text-gray-600 text-sm">Loading blocked users...</p>
             </div>
           ) : blockedUsers.length === 0 ? (
             <div className="text-center py-12">
-              <ShieldOff className="h-16 w-16 text-gray-300 mx-auto mb-3" />
-              <p className="text-whatsapp-secondary font-medium">
-                No blocked users
-              </p>
-              <p className="text-whatsapp-secondary text-sm mt-1">
+              <ShieldOff className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">No blocked users</p>
+              <p className="text-gray-500 text-sm mt-1">
                 You haven't blocked anyone yet
               </p>
             </div>
@@ -150,19 +146,19 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
               {blockedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 p-3 hover:bg-whatsapp-light rounded-xl transition-all duration-300 border border-transparent hover:border-whatsapp-border group"
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-all duration-300 border border-transparent hover:border-gray-200 group"
                 >
-                  <Avatar className="h-12 w-12 ring-2 ring-whatsapp-border group-hover:ring-whatsapp-green transition-all duration-300">
+                  <Avatar className="h-12 w-12 ring-2 ring-gray-200 group-hover:ring-slate-400 transition-all duration-300">
                     <AvatarImage src={user.avatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-red-400 to-red-500 text-white font-semibold">
+                    <AvatarFallback className="bg-red-500 text-white font-semibold">
                       {user.name[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-whatsapp-text font-semibold text-sm truncate">
+                    <p className="text-gray-800 font-semibold text-sm truncate">
                       {user.name}
                     </p>
-                    <p className="text-whatsapp-secondary text-xs truncate">
+                    <p className="text-gray-600 text-xs truncate">
                       {user.phone}
                     </p>
                   </div>
@@ -170,7 +166,7 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleUnblock(user.id)}
-                    className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-300"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all duration-300"
                   >
                     <UserCheck className="h-4 w-4 mr-1" />
                     Unblock

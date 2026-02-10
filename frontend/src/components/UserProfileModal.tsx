@@ -156,17 +156,17 @@ const UserProfileModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white border-2 border-whatsapp-border rounded-3xl shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="max-w-md bg-white border-2 border-gray-200 rounded-3xl shadow-2xl p-0 overflow-hidden">
         <DialogHeader className="p-0">
           {/* Header with Avatar */}
-          <div className="bg-gradient-to-br from-whatsapp-green via-green-500 to-green-600 p-8 pb-12">
+          <div className="bg-slate-800 p-8 pb-12">
             <div className="flex flex-col items-center gap-4">
-              <Avatar className="h-32 w-32 ring-4 ring-white shadow-2xl">
+              <Avatar className="h-32 w-32 ring-4 ring-slate-600 shadow-2xl">
                 <AvatarImage
                   src={profile?.avatar || userAvatar || undefined}
                   alt={profile?.name || userName}
                 />
-                <AvatarFallback className="bg-white text-whatsapp-green text-4xl font-bold">
+                <AvatarFallback className="bg-slate-600 text-white text-4xl font-bold">
                   {(profile?.name || userName)?.charAt(0).toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
@@ -174,16 +174,16 @@ const UserProfileModal = ({
                 <DialogTitle className="text-white text-2xl font-bold mb-2">
                   {profile?.name || userName}
                 </DialogTitle>
-                <div className="flex items-center justify-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
+                <div className="flex items-center justify-center gap-2 bg-slate-700 px-4 py-1.5 rounded-full">
                   {profile?.isOnline ? (
                     <>
-                      <div className="w-2.5 h-2.5 bg-green-300 rounded-full animate-pulse" />
+                      <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
                       <p className="text-white text-sm font-medium">Online</p>
                     </>
                   ) : (
                     <>
-                      <Clock className="h-3.5 w-3.5 text-white/80" />
-                      <p className="text-white/90 text-sm">
+                      <Clock className="h-3.5 w-3.5 text-slate-300" />
+                      <p className="text-slate-300 text-sm">
                         {formatLastSeen(
                           profile?.lastSeen || new Date().toISOString(),
                         )}
@@ -198,78 +198,68 @@ const UserProfileModal = ({
 
         {/* Content */}
         <div className="p-6 space-y-5 max-h-[50vh] overflow-y-auto -mt-6">
-          <div className="bg-white rounded-2xl shadow-lg border-2 border-whatsapp-border p-5">
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-5">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8">
-                <div className="animate-spin h-10 w-10 border-4 border-whatsapp-green border-t-transparent rounded-full mb-3" />
-                <p className="text-whatsapp-secondary text-sm">
-                  Loading profile...
-                </p>
+                <div className="animate-spin h-10 w-10 border-4 border-slate-600 border-t-transparent rounded-full mb-3" />
+                <p className="text-gray-600 text-sm">Loading profile...</p>
               </div>
             ) : profile ? (
               <div className="space-y-4">
                 {/* About */}
                 {profile.about && (
-                  <div className="bg-whatsapp-light/50 p-4 rounded-xl">
-                    <p className="text-whatsapp-secondary text-xs font-bold mb-1 flex items-center gap-1">
+                  <div className="bg-gray-50 p-4 rounded-xl">
+                    <p className="text-gray-600 text-xs font-bold mb-1 flex items-center gap-1">
                       <Info className="h-3 w-3" /> About
                     </p>
-                    <p className="text-whatsapp-text font-medium">
-                      {profile.about}
-                    </p>
+                    <p className="text-gray-800 font-medium">{profile.about}</p>
                   </div>
                 )}
 
                 {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-whatsapp-light/50 p-3 rounded-xl">
+                  <div className="bg-gray-50 p-3 rounded-xl">
                     <div className="flex items-center gap-2 mb-1">
-                      <Phone className="h-4 w-4 text-whatsapp-green" />
-                      <p className="text-whatsapp-secondary text-xs font-bold">
-                        Phone
-                      </p>
+                      <Phone className="h-4 w-4 text-slate-600" />
+                      <p className="text-gray-600 text-xs font-bold">Phone</p>
                     </div>
-                    <p className="text-whatsapp-text text-sm font-medium truncate">
+                    <p className="text-gray-800 text-sm font-medium truncate">
                       {profile.phone}
                     </p>
                   </div>
 
                   {profile.email && (
-                    <div className="bg-whatsapp-light/50 p-3 rounded-xl">
+                    <div className="bg-gray-50 p-3 rounded-xl">
                       <div className="flex items-center gap-2 mb-1">
-                        <Mail className="h-4 w-4 text-whatsapp-green" />
-                        <p className="text-whatsapp-secondary text-xs font-bold">
-                          Email
-                        </p>
+                        <Mail className="h-4 w-4 text-slate-600" />
+                        <p className="text-gray-600 text-xs font-bold">Email</p>
                       </div>
-                      <p className="text-whatsapp-text text-sm font-medium truncate">
+                      <p className="text-gray-800 text-sm font-medium truncate">
                         {profile.email}
                       </p>
                     </div>
                   )}
 
                   {profile.gender && (
-                    <div className="bg-whatsapp-light/50 p-3 rounded-xl">
+                    <div className="bg-gray-50 p-3 rounded-xl">
                       <div className="flex items-center gap-2 mb-1">
-                        <User className="h-4 w-4 text-whatsapp-green" />
-                        <p className="text-whatsapp-secondary text-xs font-bold">
+                        <User className="h-4 w-4 text-slate-600" />
+                        <p className="text-gray-600 text-xs font-bold">
                           Gender
                         </p>
                       </div>
-                      <p className="text-whatsapp-text text-sm font-medium">
+                      <p className="text-gray-800 text-sm font-medium">
                         {getGenderLabel(profile.gender)}
                       </p>
                     </div>
                   )}
 
-                  <div className="bg-whatsapp-light/50 p-3 rounded-xl">
+                  <div className="bg-gray-50 p-3 rounded-xl">
                     <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-whatsapp-green" />
-                      <p className="text-whatsapp-secondary text-xs font-bold">
-                        Joined
-                      </p>
+                      <Calendar className="h-4 w-4 text-slate-600" />
+                      <p className="text-gray-600 text-xs font-bold">Joined</p>
                     </div>
-                    <p className="text-whatsapp-text text-sm font-medium">
+                    <p className="text-gray-800 text-sm font-medium">
                       {formatDate(profile.createdAt)}
                     </p>
                   </div>
@@ -277,9 +267,7 @@ const UserProfileModal = ({
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-whatsapp-secondary">
-                  Failed to load profile
-                </p>
+                <p className="text-gray-600">Failed to load profile</p>
               </div>
             )}
           </div>
@@ -287,14 +275,14 @@ const UserProfileModal = ({
 
         {/* Footer Actions */}
         {profile && user?.id !== userId && (
-          <div className="p-5 border-t-2 border-whatsapp-border bg-whatsapp-light/30">
+          <div className="p-5 border-t-2 border-gray-200 bg-gray-50">
             <Button
               onClick={handleBlock}
               disabled={blocking}
               className={`w-full rounded-xl h-12 font-bold shadow-lg transition-all duration-300 ${
                 isBlocked
-                  ? "bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green text-white"
-                  : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-red-600 hover:bg-red-700 text-white"
               }`}
             >
               {blocking ? (
