@@ -59,7 +59,7 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 app.use(cookieParser()); // Parse cookies
 app.use(express.json({ limit: "50mb" }));
@@ -80,7 +80,10 @@ app.use(
   },
   express.static(uploadsPath, {
     setHeaders: (res, path) => {
-      res.setHeader("Access-Control-Allow-Origin", process.env.CLIENT_URL || "http://localhost:5173");
+      res.setHeader(
+        "Access-Control-Allow-Origin",
+        process.env.CLIENT_URL || "http://localhost:5173",
+      );
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Cache-Control", "public, max-age=31536000");
       // proper content type for downloads
@@ -96,7 +99,7 @@ app.use(
         res.setHeader("Content-Type", "image/gif");
       }
     },
-  })
+  }),
 );
 
 // Request logging middleware
@@ -125,7 +128,7 @@ app.get("/health", (req: Request, res: Response) => {
 
 // API routes
 app.get("/api", (req: Request, res: Response) => {
-  res.json({ message: "WhatsApp Clone API" });
+  res.json({ message: "Chit-Chat Application API" });
 });
 
 // Test route to verify routing works

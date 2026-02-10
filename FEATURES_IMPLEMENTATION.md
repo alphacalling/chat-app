@@ -1,6 +1,6 @@
 # 🛠️ Features Implementation Guide
 
-Complete guide on how all features were implemented in this WhatsApp Clone application.
+Complete guide on how all features were implemented in this Chit-Chat application.
 
 ---
 
@@ -111,7 +111,7 @@ api.interceptors.response.use(
 1. **Generate Secret**:
 ```typescript
 const secret = speakeasy.generateSecret({
-  name: `WhatsApp Clone (${user.phone})`
+  name: `Chit-Chat Application (${user.phone})`
 });
 ```
 
@@ -979,7 +979,7 @@ pnpm build
 
 ## 🎉 Conclusion
 
-This implementation provides a complete, production-ready WhatsApp clone with:
+This implementation provides a complete, production-ready Chit-Chat Application with:
 - ✅ Real-time messaging
 - ✅ Group management
 - ✅ File sharing

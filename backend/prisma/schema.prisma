@@ -16,7 +16,7 @@ model User {
   email    String?  @unique
   password String
   avatar   String?
-  about    String   @default("Hey there! I'm using WhatsApp")
+  about    String   @default("Hey there! I'm using Chit-Chat")
   gender   String?
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())

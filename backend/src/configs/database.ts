@@ -21,7 +21,7 @@ export const prisma =
     adapter,
     log:
       process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
+        ? ["error", "warn"]  //"query", 
         : ["error"],
   });
 
@@ -34,7 +34,7 @@ export async function connectDatabase(): Promise<void> {
     await prisma.$connect();
     console.log("✅ Database connected successfully");
   } catch (error) {
-    console.error("❌ Database connection failed:", error);
+    console.error("Database connection failed:", error);
     process.exit(1);
   }
 }

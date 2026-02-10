@@ -18,7 +18,7 @@ CREATE TABLE "User" (
     "email" TEXT,
     "password" TEXT NOT NULL,
     "avatar" TEXT,
-    "about" TEXT NOT NULL DEFAULT 'Hey there! I''m using WhatsApp',
+    "about" TEXT NOT NULL DEFAULT 'Hey there! I'm using Chit-Chat',
     "gender" TEXT,
     "isOnline" BOOLEAN NOT NULL DEFAULT false,
     "lastSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -1,11 +1,18 @@
 import { prisma } from "../configs/database.js";
-import { generateTOTPSecret, verifyTOTP, verifyBackupCode, generateQRCode } from "../utils/totp.js";
+import {
+  generateTOTPSecret,
+  verifyTOTP,
+  verifyBackupCode,
+  generateQRCode,
+} from "../utils/totp.js";
 
 export class TOTPService {
   /**
    * Enable TOTP for a user
    */
-  async enableTOTP(userId: string): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
+  async enableTOTP(
+    userId: string,
+  ): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -18,10 +25,13 @@ export class TOTPService {
       throw new Error("TOTP is already enabled");
     }
 
-    const config = generateTOTPSecret(user.email || user.phone, "WhatsApp Clone");
+    const config = generateTOTPSecret(
+      user.email || user.phone,
+      "Chit-Chat App",
+    );
     const qrCode = await generateQRCode(config.qrCodeUrl);
 
-    // Store secret and backup codes (comma-separated)
+    // Store secret and backup codes
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -49,8 +59,9 @@ export class TOTPService {
       throw new Error("TOTP secret not found. Please generate it first.");
     }
 
-    const isValid = verifyTOTP(token, user.totpSecret) || 
-                    (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
+    const isValid =
+      verifyTOTP(token, user.totpSecret) ||
+      (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
 
     if (!isValid) {
       throw new Error("Invalid TOTP token");
@@ -80,8 +91,9 @@ export class TOTPService {
       throw new Error("TOTP secret not found");
     }
 
-    const isValid = verifyTOTP(token, user.totpSecret) || 
-                    (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
+    const isValid =
+      verifyTOTP(token, user.totpSecret) ||
+      (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
 
     if (!isValid) {
       throw new Error("Invalid TOTP token");
@@ -109,8 +121,12 @@ export class TOTPService {
       return false;
     }
 
-    return verifyTOTP(token, user.totpSecret) || 
-           (user.totpBackupCodes ? verifyBackupCode(token, user.totpBackupCodes) : false);
+    return (
+      verifyTOTP(token, user.totpSecret) ||
+      (user.totpBackupCodes
+        ? verifyBackupCode(token, user.totpBackupCodes)
+        : false)
+    );
   }
 }
 
