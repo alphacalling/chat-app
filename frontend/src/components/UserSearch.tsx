@@ -29,7 +29,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
 
     try {
       setLoading(true);
-      const { data } = await api.get(`/api/auth/users?search=${search}`);
+      const { data } = await api.get(`/auth/users?search=${search}`);
       setSearchResults(data.data || []);
     } catch (error) {
       console.error("Error searching users", error);
@@ -41,7 +41,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
   const accessChat = async (userId: string) => {
     try {
       setLoadingChatId(userId);
-      const { data } = await api.post("/api/chat/access-chat", { userId });
+      const { data } = await api.post("/chat/access-chat", { userId });
       onChatAccessed(data.data || data);
       onClose();
     } catch (error) {
@@ -55,7 +55,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center pt-16 p-4 animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border-2 border-whatsapp-border overflow-hidden animate-in zoom-in slide-in-from-top-4 duration-500">
         {/* Header */}
-        <div className="bg-gradient-to-r from-whatsapp-green to-green-600 p-5 flex justify-between items-center">
+        <div className="bg-linear-to-r from-whatsapp-green to-green-600 p-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
               <MessageCircle className="w-5 h-5 text-white" />
@@ -93,7 +93,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
             <Button
               onClick={handleSearch}
               disabled={loading || !search.trim()}
-              className="bg-gradient-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green h-12 px-6 rounded-xl font-bold shadow-lg disabled:opacity-50"
+              className="bg-linear-to-r from-whatsapp-green to-green-600 hover:from-green-600 hover:to-whatsapp-green h-12 px-6 rounded-xl font-bold shadow-lg disabled:opacity-50"
             >
               {loading ? (
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />

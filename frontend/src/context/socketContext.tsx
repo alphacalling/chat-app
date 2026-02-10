@@ -1,7 +1,7 @@
-// client/src/context/socketContext.tsx
 import { createContext, useEffect, useState, useCallback } from "react";
 import io, { Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
+import { API_BASE_URL } from "../configs/env";
 
 interface SocketContextProps {
   socket: Socket | null;
@@ -10,8 +10,13 @@ interface SocketContextProps {
   joinChat: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
   sendMessage: (
-    data: { content: string; chatId: string; type?: string; replyToId?: string },
-    callback: (response: any) => void
+    data: {
+      content: string;
+      chatId: string;
+      type?: string;
+      replyToId?: string;
+    },
+    callback: (response: any) => void,
   ) => void;
   startTyping: (chatId: string) => void;
   stopTyping: (chatId: string) => void;
@@ -33,7 +38,6 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Only connect if user exists and has an id
     if (!user || !user.id) {
       console.log("❌ No user or user.id, skipping socket connection");
 
@@ -50,7 +54,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     console.log("🔌 Connecting socket for user:", user.id);
 
     // Access token is in httpOnly cookie; send credentials so backend can verify
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io(API_BASE_URL, {
       withCredentials: true,
     });
 
@@ -61,7 +65,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       console.log("✅ Socket connected:", newSocket.id);
       setIsConnected(true);
 
-      // ✅ FIX: Make sure user.id exists before emitting
+      // user.id exists before emitting
       if (user && user.id) {
         console.log("📤 Emitting user:connect with userId:", user.id);
         newSocket.emit("user:connect", user.id);
@@ -108,7 +112,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       console.log("🧹 Cleaning up socket");
       newSocket.disconnect();
     };
-  }, [user?.id]); // ✅ Only depend on user.id, not entire user object
+  }, [user?.id]);
 
   // Helper functions
   const joinChat = useCallback(
@@ -118,7 +122,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         console.log("📥 Joined chat:", chatId);
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const leaveChat = useCallback(
@@ -128,13 +132,18 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         console.log("📤 Left chat:", chatId);
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const sendMessage = useCallback(
     (
-      data: { content: string; chatId: string; type?: string; replyToId?: string },
-      callback: (response: any) => void
+      data: {
+        content: string;
+        chatId: string;
+        type?: string;
+        replyToId?: string;
+      },
+      callback: (response: any) => void,
     ) => {
       if (socket && isConnected) {
         socket.emit("message:send", data, callback);
@@ -142,7 +151,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         callback({ success: false, error: "Not connected" });
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const startTyping = useCallback(
@@ -151,7 +160,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         socket.emit("typing:start", chatId);
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const stopTyping = useCallback(
@@ -160,7 +169,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         socket.emit("typing:stop", chatId);
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const markAsDelivered = useCallback(
@@ -169,7 +178,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         socket.emit("message:delivered", messageId);
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const markAsRead = useCallback(
@@ -178,7 +187,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         socket.emit("message:read", { messageId, chatId });
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   const deleteMessage = useCallback(
@@ -187,7 +196,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         socket.emit("message:delete", { messageId, chatId });
       }
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   return (

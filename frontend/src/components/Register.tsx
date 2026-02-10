@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../apis/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Eye, EyeOff, UserPlus, Sparkles } from "lucide-react";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 import TOTPSetupModal from "./TOTPSetupModal";
 import { useAuth } from "../context/useAuth";
 
@@ -42,16 +42,15 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const response = await api.post("/api/auth/register", {
+      const response = await api.post("/auth/register", {
         name: formData.name,
         phone: formData.phone,
         password: formData.password,
       });
 
       console.log(
-        "✅ Registered and logged in, tokens stored in httpOnly cookies",
+        "Registered and logged in, tokens stored in httpOnly cookies",
       );
-      // Set user in auth context (cookies already set by backend)
       await refreshUser();
       setShowTOTP(true);
     } catch (err: any) {
@@ -63,44 +62,35 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center from-whatsapp-light bg-linear-to-br from-gray-900 via-gray-900 to-gray-950 px-4 py-12">
-      <div className="w-full max-w-md animate-in fade-in duration-700 slide-in-from-bottom-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-gray-900 via-gray-900 to-gray-950 px-4 py-12">
+      <div className="w-full max-w-md animate-in fade-in duration-500">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="relative w-20 h-20 bg-gradient-to-br from-whatsapp-green to-green-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-whatsapp-green/30 animate-in zoom-in duration-500 delay-100">
+          <div className="w-20 h-20 bg-linear-to-br from-green-500 to-green-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20 animate-in zoom-in duration-300 delay-200">
             <UserPlus className="w-10 h-10 text-white" />
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
-              <Sparkles className="w-3 h-3 text-white" />
-            </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-whatsapp-green via-green-600 to-green-500 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2 bg-linear-to-r from-white to-gray-300 bg-clip-text">
             Create Account
           </h1>
-          <p className="text-whatsapp-secondary text-base">
-            Join WhatsApp to start messaging
-          </p>
+          <p className="text-gray-400">Join Chit-Chat App to start messaging</p>
         </div>
 
         {/* Form Card */}
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-600/50 backdrop-blur-md rounded-3xl p-8 space-y-5 border border-gray-700/50 shadow-2xl animate-in slide-in-from-bottom-8 duration-700 delay-200"
+          className="bg-gray-800/50 backdrop-blur-md rounded-2xl p-8 space-y-6 border border-gray-700/50 shadow-2xl animate-in slide-in-from-bottom duration-500 delay-300"
         >
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg text-sm animate-in slide-in-from-left duration-300">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span>{error}</span>
-              </div>
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm animate-in slide-in-from-left duration-300">
+              {error}
             </div>
           )}
 
           {/* Name Input */}
-          <div className="space-y-2 group">
-            <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">
               Full Name
-              <span className="text-whatsapp-green">*</span>
             </label>
             <Input
               type="text"
@@ -109,15 +99,14 @@ const Register = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green focus:ring-4 focus:ring-whatsapp-green/10 text-whatsapp-text placeholder:text-whatsapp-secondary transition-all duration-300 h-12 rounded-xl"
+              className="bg-gray-900/50 border-gray-700 focus:border-green-500 text-white placeholder:text-gray-500"
             />
           </div>
 
           {/* Phone Input */}
-          <div className="space-y-2 group">
-            <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">
               Phone Number
-              <span className="text-whatsapp-green">*</span>
             </label>
             <Input
               type="tel"
@@ -126,15 +115,14 @@ const Register = () => {
               value={formData.phone}
               onChange={handleChange}
               required
-              className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green focus:ring-4 focus:ring-whatsapp-green/10 text-whatsapp-text placeholder:text-whatsapp-secondary transition-all duration-300 h-12 rounded-xl"
+              className="bg-gray-900/50 border-gray-700 focus:border-green-500 text-white placeholder:text-gray-500"
             />
           </div>
 
           {/* Password Input */}
-          <div className="space-y-2 group">
-            <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">
               Password
-              <span className="text-whatsapp-green">*</span>
             </label>
             <div className="relative">
               <Input
@@ -144,27 +132,26 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green focus:ring-4 focus:ring-whatsapp-green/10 text-whatsapp-text placeholder:text-whatsapp-secondary pr-12 transition-all duration-300 h-12 rounded-xl"
+                className="bg-gray-900/50 border-gray-700 focus:border-green-500 pr-10 text-white placeholder:text-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-whatsapp-secondary hover:text-whatsapp-green transition-all duration-300 hover:scale-110"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
           </div>
 
           {/* Confirm Password Input */}
-          <div className="space-y-2 group">
-            <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">
               Confirm Password
-              <span className="text-whatsapp-green">*</span>
             </label>
             <div className="relative">
               <Input
@@ -174,17 +161,17 @@ const Register = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="bg-whatsapp-light/50 border-2 border-whatsapp-border focus:border-whatsapp-green focus:ring-4 focus:ring-whatsapp-green/10 text-whatsapp-text placeholder:text-whatsapp-secondary pr-12 transition-all duration-300 h-12 rounded-xl"
+                className="bg-gray-900/50 border-gray-700 focus:border-green-500 pr-10 text-white placeholder:text-gray-500"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-whatsapp-secondary hover:text-whatsapp-green transition-all duration-300 hover:scale-110"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -194,28 +181,25 @@ const Register = () => {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-whatsapp-green via-green-500 to-green-600 hover:from-green-600 hover:via-whatsapp-green hover:to-green-500 text-white font-semibold shadow-xl shadow-whatsapp-green/30 mt-6 h-12 rounded-xl transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-whatsapp-green/40"
+            className="w-full bg-linear-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-500 text-white font-semibold shadow-lg shadow-green-500/20 transition-all duration-300"
           >
             {loading ? (
-              <div className="flex items-center gap-3">
-                <div className="animate-spin h-5 w-5 border-3 border-white border-t-transparent rounded-full"></div>
-                <span>Creating your account...</span>
+              <div className="flex items-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <span>Creating account...</span>
               </div>
             ) : (
-              <span className="flex items-center gap-2">
-                Create Account
-                <Sparkles className="h-4 w-4" />
-              </span>
+              "Create Account"
             )}
           </Button>
 
           {/* Login Link */}
           <div className="text-center pt-4">
-            <p className="text-whatsapp-secondary text-sm">
+            <p className="text-gray-400 text-sm">
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-whatsapp-green hover:text-green-600 font-semibold transition-colors duration-300 hover:underline underline-offset-2"
+                className="text-green-500 hover:text-green-400 font-medium transition-colors"
               >
                 Sign in
               </Link>

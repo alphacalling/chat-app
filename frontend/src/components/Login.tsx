@@ -50,7 +50,7 @@ const Login = () => {
         setPendingUser(null);
       }
     } catch (err: any) {
-      throw err; // Let modal handle the error
+      throw err;
     }
   };
 
@@ -59,11 +59,11 @@ const Login = () => {
       <div className="w-full max-w-md animate-in fade-in duration-500">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20 animate-in zoom-in duration-300 delay-200">
+          <div className="w-20 h-20 bg-linear-to-br from-green-500 to-green-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20 animate-in zoom-in duration-300 delay-200">
             <MessageCircle className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            WhatsApp
+          <h1 className="text-4xl font-bold text-white mb-2 bg-linear-to-r from-white to-gray-300 bg-clip-text">
+            Chit-Chat Application
           </h1>
           <p className="text-gray-400">Sign in to your account</p>
         </div>
@@ -125,7 +125,7 @@ const Login = () => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-500 text-white font-semibold shadow-lg shadow-green-500/20 transition-all duration-300"
+            className="w-full bg-linear-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-500 text-white font-semibold shadow-lg shadow-green-500/20 transition-all duration-300"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">

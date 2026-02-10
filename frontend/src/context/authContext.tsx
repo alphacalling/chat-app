@@ -23,7 +23,6 @@ interface AuthContextProps {
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  /** Call after profile/avatar update so your profile shows everywhere immediately */
   updateUser: (updated: Partial<User> | null) => void;
 }
 
@@ -37,20 +36,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check auth on app start (cookies are automatically sent with requests)
+  // Check auth on app start
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await api.get("/api/me/profile");
+        const response = await api.get("/me/profile");
 
-        // Handle both formats: response.data or response.data.data
         const userData = response.data.data || response.data;
 
-        console.log("✅ Profile fetched:", userData);
+        console.log("Profile fetched:", userData);
         setUser(userData);
       } catch (err: any) {
-        console.log("❌ Auth check failed:", err.response?.data || err.message);
-        // Cookies will be cleared by backend on logout
+        console.log("Auth check failed:", err.response?.data || err.message);
         setUser(null);
       } finally {
         setLoading(false);
@@ -65,33 +62,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     password: string,
     totpToken?: string,
   ): Promise<{ requiresTOTP?: boolean; user?: any }> => {
-    const response = await api.post("/api/auth/login", {
+    const response = await api.post("/auth/login", {
       phone,
       password,
       totpToken,
     });
 
-    console.log("📦 Full response:", response.data);
+    console.log("Full response:", response.data);
 
     const responseData = response.data.data;
 
     // Check if TOTP is required
     if (responseData.requiresTOTP) {
-      console.log("🔐 TOTP required for user:", responseData.user);
+      console.log("TOTP required for user:", responseData.user);
       return { requiresTOTP: true, user: responseData.user };
     }
 
     // Normal login flow
-    // Tokens are now stored in httpOnly cookies (automatically handled by browser)
     const { user: userData } = responseData;
 
-    console.log("✅ User:", userData);
-    console.log("✅ Tokens stored in httpOnly cookies (secure)");
-
-    // Set user state - this triggers navigation
+    console.log("User:", userData);
+    console.log("Tokens stored in httpOnly cookies (secure)");
     setUser(userData);
 
-    console.log("✅ Login complete, user set!");
+    console.log("Login complete, user set!");
     return { requiresTOTP: false };
   };
 
@@ -100,36 +94,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     phone: string,
     password: string,
   ): Promise<void> => {
-    const response = await api.post("/api/auth/register", {
+    const response = await api.post("/auth/register", {
       name,
       phone,
       password,
     });
-    console.log("✅ Register response:", response.data);
-    // Registration successful, user needs to login
+    console.log("Register response:", response.data);
   };
 
   const logout = async (): Promise<void> => {
     try {
-      await api.post("/api/logout");
+      await api.post("/logout");
     } catch (err) {
       console.error("Logout API error:", err);
     } finally {
-      // Cookies are cleared by backend on logout
       setUser(null);
-      console.log("✅ Logged out");
+      console.log("Logged out");
     }
   };
 
   const refreshUser = async (): Promise<void> => {
     try {
-      const response = await api.get("/api/me/profile");
+      const response = await api.get("/me/profile");
       const userData = response.data.data || response.data;
-      console.log("✅ User profile refreshed:", userData);
+      console.log("User profile refreshed:", userData);
       setUser(userData);
     } catch (err: any) {
       console.error(
-        "❌ Failed to refresh user profile:",
+        "Failed to refresh user profile:",
         err.response?.data || err.message,
       );
     }
@@ -145,7 +137,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     console.log(
-      "🔄 Auth state changed - User:",
+      "Auth state changed - User:",
       user?.name || "null",
       "Loading:",
       loading,
@@ -154,7 +146,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, loading, refreshUser, updateUser }}
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loading,
+        refreshUser,
+        updateUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

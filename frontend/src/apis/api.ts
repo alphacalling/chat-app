@@ -1,8 +1,8 @@
-// client/src/apis/api.ts
 import axios from "axios";
+import { API_BASE_URL } from "../configs/env";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -11,7 +11,6 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // If FormData, remove Content-Type header to let axios set it automatically with boundary
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }
@@ -19,7 +18,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Handle 401 errors (token expired)
@@ -28,8 +27,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Auth-check request: 401 is expected when not logged in — don't refresh/redirect (avoids loop on login page)
-    const isAuthCheck = originalRequest?.url?.includes?.("/api/me/profile");
+    const isAuthCheck = originalRequest?.url?.includes?.("/me/profile");
     if (isAuthCheck) {
       return Promise.reject(error);
     }
@@ -38,12 +36,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Refresh token is in httpOnly cookie - send with credentials
-        await api.post("/api/auth/refresh");
-        // New access token is set in cookie by backend; retry original request
+        // Refresh token is in httpOnly cookie
+        await api.post("/auth/refresh");
+        // New access token is set in cookie by backend;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login (only if not already there to avoid reload loop)
+        // Refresh failed, redirect to login
         if (!window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
@@ -52,181 +50,156 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
-// ============================================
-// AUTH APIs
-// ============================================
+//* AUTH APIs
 export const authAPI = {
-  register: (data: { name: string; phone: string; email?: string; password: string }) =>
-    api.post("/api/auth/register", data),
+  register: (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    password: string;
+  }) => api.post("/auth/register", data),
 
   login: (data: { phone: string; password: string }) =>
-    api.post("/api/auth/login", data),
+    api.post("/auth/login", data),
 
-  logout: () =>
-    api.post("/api/logout"),
+  logout: () => api.post("/logout"),
 
-  getProfile: () =>
-    api.get("/api/me/profile"),
+  getProfile: () => api.get("/me/profile"),
 
-  getUserProfile: (userId: string) =>
-    api.get(`/api/user/${userId}`),
+  getUserProfile: (userId: string) => api.get(`/user/${userId}`),
 
-  updateProfile: (data: { name?: string; about?: string; avatar?: string; gender?: string; email?: string }) =>
-    api.patch("/api/me/update-profile", data),
+  updateProfile: (data: {
+    name?: string;
+    about?: string;
+    avatar?: string;
+    gender?: string;
+    email?: string;
+  }) => api.patch("/me/update-profile", data),
 
-  searchUsers: (search: string) =>
-    api.get(`/api/auth/users?search=${search}`),
+  searchUsers: (search: string) => api.get(`/auth/users?search=${search}`),
 
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    console.log("🔍 Frontend: Sending user avatar upload", {
+    console.log("Frontend: Sending user avatar upload", {
       fileName: file.name,
       fileSize: file.size,
-      fileType: file.type
+      fileType: file.type,
     });
-    // Don't set Content-Type header - let axios set it automatically with boundary
-    return api.post("/api/me/upload-avatar", formData);
+    return api.post("/me/upload-avatar", formData);
   },
 };
 
-// ============================================
-// CHAT APIs
-// ============================================
+//* CHAT APIs
 export const chatAPI = {
-  accessChat: (userId: string) =>
-    api.post("/api/chat/access-chat", { userId }),
+  accessChat: (userId: string) => api.post("/chat/access-chat", { userId }),
 
-  fetchChats: () =>
-    api.get("/api/chat/fetch-chat"),
+  fetchChats: () => api.get("/chat/fetch-chat"),
 
   createGroup: (name: string, userIds: string[]) =>
-    api.post("/api/chat/create-group", { name, userIds }),
+    api.post("/chat/create-group", { name, userIds }),
 
   renameGroup: (chatId: string, name: string) =>
-    api.put("/api/chat/rename-group", { chatId, name }),
+    api.put("/chat/rename-group", { chatId, name }),
 
   addToGroup: (chatId: string, userId: string) =>
-    api.put("/api/chat/add-to-group", { chatId, userId }),
+    api.put("/chat/add-to-group", { chatId, userId }),
 
   removeFromGroup: (chatId: string, userId: string) =>
-    api.put("/api/chat/remove-from-group", { chatId, userId }),
+    api.put("/chat/remove-from-group", { chatId, userId }),
 
-  leaveGroup: (chatId: string) =>
-    api.delete(`/api/chat/leave-group/${chatId}`),
+  leaveGroup: (chatId: string) => api.delete(`/chat/leave-group/${chatId}`),
 };
 
-// ============================================
-// MESSAGE APIs
-// ============================================
+//* MESSAGE APIs
 export const messageAPI = {
-  getMessages: (chatId: string) =>
-    api.get(`/api/message/get-messages/${chatId}`),
+  getMessages: (chatId: string) => api.get(`/message/get-messages/${chatId}`),
 
   sendMessage: (chatId: string, content: string) =>
-    api.post("/api/message/send-message", { chatId, content }),
+    api.post("/message/send-message", { chatId, content }),
 
   sendMedia: (chatId: string, file: File) => {
     const formData = new FormData();
     formData.append("chatId", chatId);
     formData.append("file", file);
-    // Don't set Content-Type header - let axios set it automatically with boundary
-    return api.post("/api/message/send-media", formData);
+    return api.post("/message/send-media", formData);
   },
 
   deleteMessage: (messageId: string) =>
-    api.delete(`/api/message/delete-message/${messageId}`),
+    api.delete(`/message/delete-message/${messageId}`),
 
-  markChatAsRead: (chatId: string) =>
-    api.put(`/api/message/mark-read/${chatId}`),
+  markChatAsRead: (chatId: string) => api.put(`/message/mark-read/${chatId}`),
 
   getUnreadCount: (chatId: string) =>
-    api.get(`/api/message/unread-count/${chatId}`),
+    api.get(`/message/unread-count/${chatId}`),
 
-  getAllUnreadCounts: () =>
-    api.get("/api/message/unread-counts"),
+  getAllUnreadCounts: () => api.get("/message/unread-counts"),
 
   // New message features
   editMessage: (messageId: string, content: string) =>
-    api.put(`/api/message/edit/${messageId}`, { content }),
+    api.put(`/message/edit/${messageId}`, { content }),
 
   addReaction: (messageId: string, emoji: string) =>
-    api.post(`/api/message/reaction/${messageId}`, { emoji }),
+    api.post(`/message/reaction/${messageId}`, { emoji }),
 
   removeReaction: (messageId: string) =>
-    api.delete(`/api/message/reaction/${messageId}`),
+    api.delete(`/message/reaction/${messageId}`),
 
   pinMessage: (messageId: string, chatId: string) =>
-    api.post(`/api/message/pin/${messageId}`, { chatId }),
+    api.post(`/message/pin/${messageId}`, { chatId }),
 
   unpinMessage: (messageId: string, chatId: string) =>
-    api.post(`/api/message/unpin/${messageId}`, { chatId }),
+    api.post(`/message/unpin/${messageId}`, { chatId }),
 
-  getPinnedMessage: (chatId: string) =>
-    api.get(`/api/message/pinned/${chatId}`),
+  getPinnedMessage: (chatId: string) => api.get(`/message/pinned/${chatId}`),
 
   sendMessageWithReply: (chatId: string, content: string, replyToId?: string) =>
-    api.post("/api/message/send-message", { chatId, content, replyToId }),
+    api.post("/message/send-message", { chatId, content, replyToId }),
 };
 
-// ============================================
-// GROUP APIs (Extended)
-// ============================================
+//* GROUP APIs (Extended)
 export const groupAPI = {
   updateDescription: (chatId: string, description: string) =>
-    api.put(`/api/chat/update-description/${chatId}`, { description }),
+    api.put(`/chat/update-description/${chatId}`, { description }),
 
   updateAvatar: (chatId: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    console.log("🔍 Frontend: Sending group avatar upload", {
+    console.log("Frontend: Sending group avatar upload", {
       chatId,
       fileName: file.name,
       fileSize: file.size,
-      fileType: file.type
+      fileType: file.type,
     });
-    // Don't set Content-Type header - let axios set it automatically with boundary
-    return api.put(`/api/chat/update-avatar/${chatId}`, formData);
+    return api.put(`/chat/update-avatar/${chatId}`, formData);
   },
 };
 
-// ============================================
-// INVITE APIs
-// ============================================
+//* INVITE APIs
 export const inviteAPI = {
   createInviteLink: (chatId: string, expiresAt?: string, maxUses?: number) =>
-    api.post(`/api/invite/create/${chatId}`, { expiresAt, maxUses }),
+    api.post(`/invite/create/${chatId}`, { expiresAt, maxUses }),
 
-  getInviteLinks: (chatId: string) =>
-    api.get(`/api/invite/list/${chatId}`),
+  getInviteLinks: (chatId: string) => api.get(`/invite/list/${chatId}`),
 
-  joinViaInvite: (code: string) =>
-    api.post("/api/invite/join", { code }),
+  joinViaInvite: (code: string) => api.post("/invite/join", { code }),
 
-  revokeInviteLink: (linkId: string) =>
-    api.delete(`/api/invite/revoke/${linkId}`),
+  revokeInviteLink: (linkId: string) => api.delete(`/invite/revoke/${linkId}`),
 };
 
-// ============================================
-// BLOCK APIs
-// ============================================
+//* BLOCK APIs
 export const blockAPI = {
-  blockUser: (userId: string) =>
-    api.post("/api/block/block", { userId }),
+  blockUser: (userId: string) => api.post("/block/block", { userId }),
 
-  unblockUser: (userId: string) =>
-    api.post("/api/block/unblock", { userId }),
+  unblockUser: (userId: string) => api.post("/block/unblock", { userId }),
 
-  getBlockedUsers: () =>
-    api.get("/api/block/list"),
+  getBlockedUsers: () => api.get("/block/list"),
 };
 
-// ============================================
-// STATUS APIs
-// ============================================
+//* STATUS APIs
 export const statusAPI = {
   createStatus: (file?: File, content?: string, type: string = "TEXT") => {
     const formData = new FormData();
@@ -235,41 +208,31 @@ export const statusAPI = {
       formData.append("file", file);
     }
     formData.append("type", type);
-    // Don't set Content-Type header - let axios set it automatically with boundary
-    return api.post("/api/status/create", formData);
+    return api.post("/status/create", formData);
   },
 
-  getStatuses: () =>
-    api.get("/api/status/all"),
+  getStatuses: () => api.get("/status/all"),
 
-  getMyStatuses: () =>
-    api.get("/api/status/my"),
+  getMyStatuses: () => api.get("/status/my"),
 
-  viewStatus: (statusId: string) =>
-    api.post(`/api/status/view/${statusId}`),
+  viewStatus: (statusId: string) => api.post(`/status/view/${statusId}`),
 
   addReaction: (statusId: string, emoji: string) =>
-    api.post(`/api/status/reaction/${statusId}`, { emoji }),
+    api.post(`/status/reaction/${statusId}`, { emoji }),
 
   removeReaction: (statusId: string) =>
-    api.delete(`/api/status/reaction/${statusId}`),
+    api.delete(`/status/reaction/${statusId}`),
 
-  deleteStatus: (statusId: string) =>
-    api.delete(`/api/status/delete/${statusId}`),
+  deleteStatus: (statusId: string) => api.delete(`/status/delete/${statusId}`),
 };
 
-// ============================================
-// TOTP APIs
-// ============================================
+//* TOTP APIs
 export const totpAPI = {
-  generateTOTP: () =>
-    api.post("/api/totp/generate"),
+  generateTOTP: () => api.post("/totp/generate"),
 
-  enableTOTP: (token: string) =>
-    api.post("/api/totp/enable", { token }),
+  enableTOTP: (token: string) => api.post("/totp/enable", { token }),
 
-  disableTOTP: (token: string) =>
-    api.post("/api/totp/disable", { token }),
+  disableTOTP: (token: string) => api.post("/totp/disable", { token }),
 };
 
 export default api;

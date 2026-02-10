@@ -135,7 +135,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const fetchConversations = async () => {
     try {
       if (!user) return;
-      const { data } = await api.get("/api/chat/fetch-chat");
+      const { data } = await api.get("/chat/fetch-chat");
       setConversations(data.data || data);
     } catch (error) {
       console.error("Failed to fetch chats:", error);
