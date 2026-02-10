@@ -5,6 +5,7 @@ import EmojiPicker from "./EmojiPicker";
 import { Check, CheckCheck, Pin, Trash2, Image, Video, FileText, Music } from "lucide-react";
 import { cn } from "../lib/utils";
 import { messageAPI } from "../apis/api";
+import { useAuth } from "../context/useAuth";
 
 interface Message {
   id: string;
@@ -48,6 +49,7 @@ const MessageBubble = ({
   onReply,
   onEdit 
 }: MessageBubbleProps) => {
+  const { user: currentUser } = useAuth();
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -109,18 +111,22 @@ const MessageBubble = ({
     }
   };
 
-  const handleReact = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEmojiPickerPos({ x: e.clientX, y: e.clientY - 300 });
+  const handleReact = (e?: React.MouseEvent) => {
+    e?.stopPropagation?.();
+    if (e) {
+      setEmojiPickerPos({ x: e.clientX, y: e.clientY - 300 });
+    } else {
+      setEmojiPickerPos({ x: window.innerWidth / 2 - 180, y: window.innerHeight / 2 - 200 });
+    }
     setShowEmojiPicker(true);
   };
 
   const handleEmojiSelect = async (emoji: string) => {
     try {
       const existingReaction = message.reactions?.find(
-        (r: any) => r.user?.id === message.senderId
+        (r: any) => r.user?.id === currentUser?.id
       );
-      
+
       if (existingReaction) {
         if (existingReaction.emoji === emoji) {
           await messageAPI.removeReaction(message.id);
@@ -130,6 +136,7 @@ const MessageBubble = ({
       } else {
         await messageAPI.addReaction(message.id, emoji);
       }
+      setShowEmojiPicker(false);
     } catch (error) {
       console.error("Failed to add reaction:", error);
     }

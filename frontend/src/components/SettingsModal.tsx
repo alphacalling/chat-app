@@ -33,7 +33,7 @@ const SettingsModal = ({
   open: boolean;
   onClose: () => void;
 }) => {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateUser } = useAuth();
   const [showTOTP, setShowTOTP] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
   const [totpSecret, setTotpSecret] = useState<any>(null);
@@ -128,6 +128,10 @@ const SettingsModal = ({
       console.log("Uploading user avatar:", file.name);
       const { data } = await authAPI.uploadAvatar(file);
       console.log("Avatar uploaded successfully:", data);
+      const updatedUser = data?.data?.user ?? data?.user;
+      if (updatedUser?.avatar != null && updateUser) {
+        updateUser({ avatar: updatedUser.avatar });
+      }
       if (refreshUser) {
         await refreshUser();
       }
@@ -143,13 +147,17 @@ const SettingsModal = ({
   const handleSaveProfile = async () => {
     try {
       setSavingProfile(true);
-      await authAPI.updateProfile({
+      const { data } = await authAPI.updateProfile({
         name: profileData.name,
         about: profileData.about,
         email: profileData.email || undefined,
         gender: profileData.gender || undefined,
       });
       setIsEditingProfile(false);
+      const updatedUser = data?.data?.user ?? data?.user;
+      if (updatedUser && updateUser) {
+        updateUser(updatedUser);
+      }
       if (refreshUser) {
         await refreshUser();
       }

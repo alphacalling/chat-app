@@ -96,10 +96,16 @@ export class StatusController {
 
       const statuses = await statusService.getStatuses(req.user.id);
 
-      // Convert relative media URLs to full URLs
+      // Convert relative media URLs and user avatars to full URLs
       const baseUrl = req.protocol + "://" + req.get("host");
       const statusesWithFullUrls = statuses.map((userStatus) => ({
         ...userStatus,
+        user: {
+          ...userStatus.user,
+          avatar: userStatus.user?.avatar
+            ? getFullFileUrl(userStatus.user.avatar, baseUrl)
+            : userStatus.user?.avatar,
+        },
         statuses: userStatus.statuses.map((status) => {
           if (status.mediaUrl && typeof status.mediaUrl === "string" && !status.mediaUrl.startsWith("http")) {
             return {

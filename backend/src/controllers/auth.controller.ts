@@ -7,7 +7,7 @@ import {
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { prisma } from "../configs/database.js";
-import { saveFile } from "../utils/fileUpload.js";
+import { saveFile, getFullFileUrl } from "../utils/fileUpload.js";
 
 export class AuthController {
   //* register user
@@ -28,11 +28,11 @@ export class AuthController {
         validationResult.data,
       );
 
-      // Set httpOnly cookies for tokens
+      // httpOnly cookies for tokens
       res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true, // Prevents JavaScript access (XSS protection)
+        httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict", // CSRF protection
+        sameSite: "strict",
         maxAge: 15 * 60 * 1000,
         path: "/",
       });
@@ -85,7 +85,7 @@ export class AuthController {
         return;
       }
 
-      // Set httpOnly cookies for tokens
+      // httpOnly cookies for tokens
       res.cookie("accessToken", result.tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -180,7 +180,7 @@ export class AuthController {
   //* refresh token
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
-      // Get refresh token
+      // refresh token
       const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
       if (!refreshToken) {
@@ -193,7 +193,7 @@ export class AuthController {
 
       const tokens = await authService.refreshTokens(refreshToken);
 
-      // Update cookies with new tokens
+      // cookies with new tokens
       res.cookie("accessToken", tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -266,11 +266,16 @@ export class AuthController {
       }
 
       const user = await authService.getProfile(req.user.id);
+      const baseUrl = req.protocol + "://" + req.get("host");
+      const data = {
+        ...user,
+        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+      };
 
       res.status(200).json({
         success: true,
         message: "Profile fetched",
-        data: user,
+        data,
       } as ApiResponse);
     } catch (error) {
       res.status(404).json({
@@ -284,7 +289,7 @@ export class AuthController {
   async getUserProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        console.error("❌ No authenticated user");
+        console.error("No authenticated user");
         res.status(401).json({
           success: false,
           message: "Not authenticated",
@@ -295,7 +300,7 @@ export class AuthController {
       const { userId } = req.params;
 
       if (!userId) {
-        console.error("❌ No userId in params");
+        console.error("No userId in params");
         res.status(400).json({
           success: false,
           message: "User ID is required",
@@ -303,12 +308,12 @@ export class AuthController {
         return;
       }
 
-      console.log("🔍 About to call authService.getUserProfile");
-      console.log("🔍 userId:", userId, "requesterId:", req.user.id);
+      console.log("About to call authService.getUserProfile");
+      console.log("userId:", userId, "requesterId:", req.user.id);
 
       const user = await authService.getUserProfile(userId, req.user.id);
 
-      console.log("✅✅✅ Profile fetched successfully, sending response");
+      console.log("Profile fetched successfully, sending response");
       res.status(200).json({
         success: true,
         message: "User profile fetched",
@@ -329,7 +334,6 @@ export class AuthController {
       const message =
         error instanceof Error ? error.message : "Failed to fetch user profile";
 
-      // NOTE: removed 403 for blocked users since profiles can be viewed even if blocked
       const statusCode = message.includes("not found")
         ? 404
         : message.includes("Invalid") || message.includes("Use /me/profile")
@@ -337,7 +341,7 @@ export class AuthController {
           : 500;
 
       console.log(
-        "🔍 Sending error response with status:",
+        "Sending error response with status:",
         statusCode,
         "message:",
         message,
@@ -360,18 +364,25 @@ export class AuthController {
         return;
       }
 
-      const { name, about, avatar } = req.body;
+      const { name, about, avatar, gender, email } = req.body;
 
       const user = await authService.updateProfile(req.user.id, {
         name,
         about,
         avatar,
+        gender,
+        email,
       });
+      const baseUrl = req.protocol + "://" + req.get("host");
+      const userWithFullAvatar = {
+        ...user,
+        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+      };
 
       res.status(200).json({
         success: true,
         message: "Profile updated",
-        data: { user },
+        data: { user: userWithFullAvatar },
       } as ApiResponse);
     } catch (error) {
       res.status(500).json({
@@ -420,11 +431,16 @@ export class AuthController {
       const user = await authService.updateProfile(req.user.id, {
         avatar: fileUrl,
       });
+      const baseUrl = req.protocol + "://" + req.get("host");
+      const userWithFullAvatar = {
+        ...user,
+        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+      };
 
       res.status(200).json({
         success: true,
         message: "Avatar uploaded successfully",
-        data: { user },
+        data: { user: userWithFullAvatar },
       } as ApiResponse);
     } catch (error) {
       res.status(500).json({

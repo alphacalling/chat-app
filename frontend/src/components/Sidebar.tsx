@@ -74,18 +74,19 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     fetchConversations();
   }, [user]);
 
+  // Sync current user's name & avatar everywhere (sidebar list, so "You" shows updated profile)
   useEffect(() => {
-    if (user?.avatar && conversations.length > 0) {
+    if (user?.id && conversations.length > 0) {
       setConversations((prev) =>
         prev.map((chat) => {
           const updatedUsers = chat.users.map((u) =>
-            u.id === user.id ? { ...u, avatar: user.avatar } : u
+            u.id === user.id ? { ...u, name: user.name, avatar: user.avatar } : u
           );
           return { ...chat, users: updatedUsers };
         })
       );
     }
-  }, [user?.avatar]);
+  }, [user?.id, user?.name, user?.avatar]);
 
   useEffect(() => {
     if (!socket) return;

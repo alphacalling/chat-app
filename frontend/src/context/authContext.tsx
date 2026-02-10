@@ -8,6 +8,7 @@ interface User {
   email?: string;
   avatar?: string;
   about?: string;
+  gender?: string;
   isOnline?: boolean;
 }
 
@@ -22,6 +23,8 @@ interface AuthContextProps {
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Call after profile/avatar update so your profile shows everywhere immediately */
+  updateUser: (updated: Partial<User> | null) => void;
 }
 
 interface AuthProviderProps {
@@ -132,6 +135,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const updateUser = (updated: Partial<User> | null): void => {
+    if (updated === null) {
+      setUser(null);
+      return;
+    }
+    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+  };
+
   useEffect(() => {
     console.log(
       "🔄 Auth state changed - User:",
@@ -143,7 +154,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, loading, refreshUser }}
+      value={{ user, login, register, logout, loading, refreshUser, updateUser }}
     >
       {children}
     </AuthContext.Provider>

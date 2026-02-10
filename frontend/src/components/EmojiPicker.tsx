@@ -223,16 +223,16 @@ const EmojiPicker = ({ onSelect, onClose, position, showQuickReactions = true }:
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - high z so picker is above chat input and messages */}
       <div 
-        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]" 
+        className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-[1px]" 
         onClick={onClose} 
       />
       
       {/* Emoji Picker Container */}
       <div
         ref={containerRef}
-        className="fixed z-50 bg-white border-2 border-whatsapp-border rounded-2xl shadow-2xl w-[360px] animate-in fade-in zoom-in duration-200 origin-bottom-left"
+        className="fixed z-[110] bg-white border-2 border-whatsapp-border rounded-2xl shadow-2xl w-[360px] animate-in fade-in zoom-in duration-200 origin-bottom-left"
         style={getPositionStyle()}
       >
         {/* Quick Reactions Bar */}

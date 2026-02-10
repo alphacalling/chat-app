@@ -3,7 +3,7 @@ import { getFullFileUrl } from "../utils/fileUpload.js";
 import { blockService } from "./block.service.js";
 
 export class ChatService {
-  // 1-on-1 Chat access karna (Find or Create)
+  // 1-on-1 Chat access
   async accessChat(currentUserId: string, targetUserId: string) {
     if (!targetUserId) {
       throw new Error("UserId param not sent with request");
@@ -110,7 +110,7 @@ export class ChatService {
     return this.formatChatResponse(newChat);
   }
 
-  // User ki saari chats fetch karna
+  // User's all chats
   async fetchChats(userId: string) {
     const chats = await prisma.chat.findMany({
       where: {
@@ -178,26 +178,24 @@ export class ChatService {
     return filteredChats.map((chat) => this.formatChatResponse(chat));
   }
 
-  // Helper: Format chat response for frontend compatibility
+  // format chat response for frontend compatibility
   private formatChatResponse(chat: any) {
-    // Safely access messages array - handle undefined or empty array
+    // safely access messages array
     const latestMessage = chat.messages && chat.messages.length > 0 ? chat.messages[0] : null;
 
     return {
       id: chat.id,
       chatName: chat.name,
       isGroupChat: chat.isGroup,
-      // Convert relative avatar path to full URL
       avatar: chat.avatar ? getFullFileUrl(chat.avatar) : null,
+      description: chat.description ?? null,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
-      // Convert participants to users array (frontend expects this)
       users: chat.participants.map((p: any) => ({
         id: p.user.id,
         name: p.user.name,
         email: p.user.email,
         phone: p.user.phone,
-        // Convert relative avatar path to full URL
         avatar: p.user.avatar ? getFullFileUrl(p.user.avatar) : null,
         isOnline: p.user.isOnline,
         lastSeen: p.user.lastSeen,

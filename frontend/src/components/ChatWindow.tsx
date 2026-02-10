@@ -300,27 +300,29 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
 
   const sender = selectedChat ? getSender(user, selectedChat.users) : null;
 
+  // Sync current user's name & avatar in this chat so header/list show updated profile
   useEffect(() => {
-    if (selectedChat && user && selectedChat.users) {
+    if (selectedChat && user && selectedChat.users && onChatUpdate) {
       const userIndex = selectedChat.users.findIndex((u) => u.id === user.id);
+      if (userIndex === -1) return;
+      const current = selectedChat.users[userIndex];
       if (
-        userIndex !== -1 &&
-        selectedChat.users[userIndex].avatar !== user.avatar
+        current.avatar !== user.avatar ||
+        current.name !== user.name
       ) {
         const updatedUsers = [...selectedChat.users];
         updatedUsers[userIndex] = {
           ...updatedUsers[userIndex],
+          name: user.name,
           avatar: user.avatar,
         };
-        if (onChatUpdate) {
-          onChatUpdate({
-            ...selectedChat,
-            users: updatedUsers,
-          });
-        }
+        onChatUpdate({
+          ...selectedChat,
+          users: updatedUsers,
+        });
       }
     }
-  }, [user?.avatar, selectedChat?.id]);
+  }, [user?.name, user?.avatar, selectedChat?.id]);
 
   if (!selectedChat) {
     return (
@@ -558,8 +560,8 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
         </div>
       )}
 
-      {/* Message Input */}
-      <div className="border-t-2 border-whatsapp-border bg-white/95 backdrop-blur-xl p-4 flex-shrink-0 shadow-2xl">
+      {/* Message Input - z-20 so input/emoji stay above messages and picker can sit on top */}
+      <div className="relative z-20 border-t-2 border-whatsapp-border bg-white/95 backdrop-blur-xl p-4 flex-shrink-0 shadow-2xl">
         <MessageInput
           onSendMessage={handleSendMessage}
           onSendMedia={handleSendMedia}
