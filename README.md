@@ -1,4 +1,4 @@
-# 💬 WhatsApp Clone - Full Featured Messaging Application
+# 💬 Chit-Chat Application - Full Featured Messaging Application
 
 A complete WhatsApp-like messaging application built with modern web technologies, featuring real-time messaging, group chats, status updates, file sharing, and more.
 
@@ -33,7 +33,7 @@ pnpm install
 Create a `.env` file in the `backend` directory:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/whatsapp_clone"
+DATABASE_URL="postgresql://user:password@localhost:5432/chitchatapp"
 JWT_SECRET="your-secret-key-here"
 CLIENT_URL="http://localhost:5173"
 PORT=5000
