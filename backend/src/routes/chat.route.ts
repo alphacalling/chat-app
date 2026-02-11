@@ -30,6 +30,11 @@ router.delete("/leave-group/:chatId", authMiddleware, (req, res) =>
   chatController.leaveGroup(req, res)
 );
 
+// Delete chat (per-user)
+router.delete("/delete-chat/:chatId", authMiddleware, (req, res) =>
+  chatController.deleteChat(req, res)
+);
+
 router.put("/update-description/:chatId", authMiddleware, (req, res) =>
   chatController.updateGroupDescription(req, res)
 );

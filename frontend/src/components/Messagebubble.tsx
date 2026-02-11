@@ -183,8 +183,7 @@ const MessageBubble = ({
           </div>
         )}
 
-        {/* Avatar for group chats */}
-        {isGroup && !isOwn && (
+        {!isOwn && (
           <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mb-1 shadow-lg ring-2 ring-white">
             {message.sender.avatar ? (
               <img
@@ -238,13 +237,18 @@ const MessageBubble = ({
             </div>
           )}
 
-          {/* Sender Name (for groups) */}
-          {isGroup && !isOwn && (
-            <p className="text-teal-700 text-xs font-bold mb-2 flex items-center gap-1">
+          {/* Sender label (You / Name) */}
+          <p
+            className={cn(
+              "text-xs font-semibold mb-1 flex items-center gap-1",
+              isOwn ? "text-stone-500 justify-end" : "text-teal-700 justify-start",
+            )}
+          >
+            {!isOwn && (
               <span className="w-1.5 h-1.5 bg-teal-600 rounded-full"></span>
-              {message.sender.name}
-            </p>
-          )}
+            )}
+            {isOwn ? "You" : message.sender.name}
+          </p>
 
           {/* Deleted Message */}
           {isDeleted ? (

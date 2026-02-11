@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "../apis/api";
+import api, { chatAPI } from "../apis/api";
 import { useSocketContext } from "../context/useSocket";
 import { useAuth } from "../context/useAuth";
 import UserSearch from "./UserSearch";
@@ -17,6 +17,9 @@ import {
   Settings,
   MessageCircle,
   Sparkles,
+  MoreVertical,
+  Trash2,
+  LogOut as LeaveIcon,
 } from "lucide-react";
 import SettingsModal from "./SettingsModal";
 import StatusSection from "./StatusSection";
@@ -59,6 +62,7 @@ interface SidebarProps {
 
 const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const [conversations, setConversations] = useState<Chat[]>([]);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [showSearch, setShowSearch] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -72,6 +76,27 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
 
   useEffect(() => {
     fetchConversations();
+  }, [user]);
+
+  // Load initial unread counts when user/session changes
+  useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      try {
+        if (!user) return;
+        const { data } = await api.get("/message/unread-counts");
+        const next: Record<string, number> = {};
+        (data.data || data || []).forEach(
+          (item: { chatId: string; count: number }) => {
+            next[item.chatId] = item.count;
+          },
+        );
+        setUnreadCounts(next);
+      } catch (error) {
+        console.error("Failed to fetch unread counts:", error);
+      }
+    };
+
+    fetchUnreadCounts();
   }, [user]);
 
   useEffect(() => {
@@ -124,14 +149,59 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
           return prev;
         }
       });
+
+      // Increase unread count only for messages from others, in chats that are not currently open
+      setUnreadCounts((prev) => {
+        const chatId = newMessageReceived.chatId;
+        const senderId =
+          newMessageReceived.sender?.id ?? newMessageReceived.senderId;
+
+        if (
+          !chatId ||
+          selectedChatId === chatId ||
+          !user?.id ||
+          !senderId ||
+          senderId === user.id
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [chatId]: (prev[chatId] || 0) + 1,
+        };
+      });
+    };
+
+    const handleGroupCreated = (data: any) => {
+      if (!user?.id) return;
+      const participants: string[] =
+        data?.participants ??
+        data?.group?.users?.map((u: { id: string }) => u.id) ??
+        [];
+      if (participants.includes(user.id)) {
+        fetchConversations();
+      }
+    };
+
+    const handleGroupUserAdded = (data: any) => {
+      if (!user?.id) return;
+      // If current user was added to group, refresh conversations
+      if (data?.userId === user.id) {
+        fetchConversations();
+      }
     };
 
     socket.on("message:new", handleNewMessage);
+    socket.on("group:created", handleGroupCreated);
+    socket.on("group:user-added", handleGroupUserAdded);
 
     return () => {
       socket.off("message:new", handleNewMessage);
+      socket.off("group:created", handleGroupCreated);
+      socket.off("group:user-added", handleGroupUserAdded);
     };
-  }, [socket]);
+  }, [socket, user?.id, selectedChatId]);
 
   const fetchConversations = async () => {
     try {
@@ -148,6 +218,32 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const handleSelectChat = (chat: Chat) => {
     setSelectedChatId(chat.id);
     onSelectChat(chat);
+
+    // Clear unread count for this chat when opened
+    setUnreadCounts((prev) => {
+      if (!prev[chat.id]) return prev;
+      const next = { ...prev };
+      next[chat.id] = 0;
+      return next;
+    });
+  };
+
+  const handleDeleteChat = async (chat: Chat) => {
+    try {
+      await chatAPI.deleteChat(chat.id);
+      setConversations((prev) => prev.filter((c) => c.id !== chat.id));
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  };
+
+  const handleLeaveGroup = async (chat: Chat) => {
+    try {
+      await chatAPI.leaveGroup(chat.id);
+      setConversations((prev) => prev.filter((c) => c.id !== chat.id));
+    } catch (error) {
+      console.error("Failed to leave group:", error);
+    }
   };
 
   const handleStartChat = (newChat: Chat) => {
@@ -333,6 +429,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
               const sender = getSender(user, chat.users);
               const isOnline = sender?.id ? onlineUsers.has(sender.id) : false;
               const isSelected = selectedChatId === chat.id;
+              const unread = unreadCounts[chat.id] || 0;
 
               return (
                 <div
@@ -384,25 +481,53 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                           : sender?.name || "Unknown"}
                       </p>
                       {chat.latestMessage && (
-                        <span className="text-xs text-gray-500 flex-shrink-0">
+                        <span className="text-xs text-gray-500 shrink-0">
                           {formatTime(chat.latestMessage.createdAt)}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 text-sm truncate mt-0.5">
-                      {chat.latestMessage ? (
-                        <>
-                          {chat.latestMessage.sender.name === user?.name && (
-                            <span className="text-gray-500">
-                              You:{" "}
-                            </span>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-gray-600 text-sm truncate">
+                        {chat.latestMessage ? (
+                          <>
+                            {chat.latestMessage.sender.name === user?.name && (
+                              <span className="text-gray-500">
+                                You:{" "}
+                              </span>
+                            )}
+                            {chat.latestMessage.content || "📎 Media"}
+                          </>
+                        ) : (
+                          <span className="italic">Start a conversation</span>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {unread > 0 && (
+                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-xs font-semibold">
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (chat.isGroupChat) {
+                              handleLeaveGroup(chat);
+                            } else {
+                              handleDeleteChat(chat);
+                            }
+                          }}
+                          className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                          title={chat.isGroupChat ? "Leave group" : "Delete chat"}
+                        >
+                          {chat.isGroupChat ? (
+                            <LeaveIcon className="h-3.5 w-3.5" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
                           )}
-                          {chat.latestMessage.content || "📎 Media"}
-                        </>
-                      ) : (
-                        <span className="italic">Start a conversation</span>
-                      )}
-                    </p>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

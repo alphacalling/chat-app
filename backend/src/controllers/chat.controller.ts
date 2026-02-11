@@ -86,6 +86,25 @@ export class ChatController {
         userIds
       );
 
+      // Notify participants in real-time that group is created
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          const participantIds =
+            group.users?.map((u: { id: string }) => u.id) ?? [];
+
+          io.emit("group:created", {
+            chatId: group.id,
+            participants: participantIds,
+            group,
+          });
+        }
+      } catch (socketError) {
+        console.error("Failed to emit group:created event:", socketError);
+      }
+
       res.status(201).json({
         success: true,
         message: "Group created successfully",
@@ -127,6 +146,23 @@ export class ChatController {
         req.user.id,
         name
       );
+
+      // Broadcast group update (e.g., name change)
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:updated", {
+            chatId,
+            group,
+            updatedBy: req.user.id,
+            type: "name",
+          });
+        }
+      } catch (socketError) {
+        console.error("Failed to emit group:updated (name) event:", socketError);
+      }
 
       res.status(200).json({
         success: true,
@@ -170,6 +206,23 @@ export class ChatController {
         userId
       );
 
+      // Notify about user being added to group
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:user-added", {
+            chatId,
+            userId,
+            addedBy: req.user.id,
+            group,
+          });
+        }
+      } catch (socketError) {
+        console.error("Failed to emit group:user-added event:", socketError);
+      }
+
       res.status(200).json({
         success: true,
         message: "User added to group successfully",
@@ -212,6 +265,23 @@ export class ChatController {
         userId
       );
 
+      // Notify about user removal from group
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:user-removed", {
+            chatId,
+            userId,
+            removedBy: req.user.id,
+            group,
+          });
+        }
+      } catch (socketError) {
+        console.error("Failed to emit group:user-removed event:", socketError);
+      }
+
       res.status(200).json({
         success: true,
         message: "User removed from group successfully",
@@ -252,6 +322,21 @@ export class ChatController {
 
       const result = await chatService.leaveGroup(chatId, req.user.id);
 
+      // Notify others that user left the group
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:user-left", {
+            chatId,
+            userId: req.user.id,
+          });
+        }
+      } catch (socketError) {
+        console.error("Failed to emit group:user-left event:", socketError);
+      }
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -259,6 +344,43 @@ export class ChatController {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to leave group";
+      res.status(400).json({
+        success: false,
+        message,
+      } as ApiResponse);
+    }
+  }
+
+  //* Delete chat for current user (remove from sidebar)
+  async deleteChat(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        } as ApiResponse);
+        return;
+      }
+
+      const { chatId } = req.params;
+
+      if (!chatId) {
+        res.status(400).json({
+          success: false,
+          message: "Chat ID required",
+        } as ApiResponse);
+        return;
+      }
+
+      await chatService.deleteChatForUser(chatId, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: "Chat removed for current user",
+      } as ApiResponse);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete chat";
       res.status(400).json({
         success: false,
         message,
@@ -285,6 +407,26 @@ export class ChatController {
         req.user.id,
         description
       );
+
+      // Broadcast description change
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:updated", {
+            chatId,
+            group: updated,
+            updatedBy: req.user.id,
+            type: "description",
+          });
+        }
+      } catch (socketError) {
+        console.error(
+          "Failed to emit group:updated (description) event:",
+          socketError
+        );
+      }
 
       res.status(200).json({
         success: true,
@@ -399,6 +541,26 @@ export class ChatController {
         fileUrl
       );
       console.log("Group avatar updated successfully");
+
+      // Broadcast avatar change
+      try {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+
+        if (io) {
+          io.to(`chat:${chatId}`).emit("group:updated", {
+            chatId,
+            group: updated,
+            updatedBy: req.user.id,
+            type: "avatar",
+          });
+        }
+      } catch (socketError) {
+        console.error(
+          "Failed to emit group:updated (avatar) event:",
+          socketError
+        );
+      }
 
       res.status(200).json({
         success: true,

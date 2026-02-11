@@ -563,6 +563,24 @@ export class ChatService {
     };
   }
 
+  // Remove current user from a 1-on-1 or group chat (delete chat for that user)
+  async deleteChatForUser(chatId: string, userId: string) {
+    // Find participant record for this user & chat
+    const participant = await prisma.chatParticipant.findFirst({
+      where: { chatId, userId },
+    });
+
+    if (!participant) {
+      throw new Error("You are not a participant in this chat");
+    }
+
+    await prisma.chatParticipant.delete({
+      where: { id: participant.id },
+    });
+
+    return { success: true };
+  }
+
   // Update group description
   async updateGroupDescription(chatId: string, userId: string, description: string) {
     const chat = await prisma.chat.findUnique({

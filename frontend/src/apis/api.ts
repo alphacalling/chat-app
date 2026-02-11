@@ -112,6 +112,8 @@ export const chatAPI = {
     api.put("/chat/remove-from-group", { chatId, userId }),
 
   leaveGroup: (chatId: string) => api.delete(`/chat/leave-group/${chatId}`),
+
+  deleteChat: (chatId: string) => api.delete(`/chat/delete-chat/${chatId}`),
 };
 
 //* MESSAGE APIs

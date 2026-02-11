@@ -75,13 +75,29 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
   const { socket, isConnected, onlineUsers } = useSocketContext();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (smooth: boolean) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+      block: "end",
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    const prevLen = prevMessagesLengthRef.current;
+    const newLen = messages.length;
+
+    const isInitialLoad = prevLen === 0 && newLen > 0;
+    const isNewMessage = prevLen > 0 && newLen >= prevLen;
+
+    if (isInitialLoad) {
+      scrollToBottom(false);
+    } else if (isNewMessage) {
+      scrollToBottom(true);
+    }
+
+    prevMessagesLengthRef.current = newLen;
   }, [messages]);
 
   useEffect(() => {
@@ -503,7 +519,7 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               </div>
             </div>
           ) : (
-            messages.map((message, index) => {
+            messages.slice().reverse().map((message, index) => {
               const isOwn = message.senderId === user?.id;
               return (
                 <div
