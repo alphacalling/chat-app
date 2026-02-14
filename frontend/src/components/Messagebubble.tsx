@@ -183,24 +183,30 @@ const MessageBubble = ({
           </div>
         )}
 
-        {!isOwn && (
-          <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mb-1 shadow-lg ring-2 ring-white">
-            {message.sender.avatar ? (
-              <img
-                src={message.sender.avatar}
-                alt={message.sender.name}
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              message.sender.name?.charAt(0).toUpperCase() || "?"
-            )}
-          </div>
-        )}
+        {/* Avatar - Shows for BOTH sender and receiver */}
+        <div className="w-9 h-9 rounded-full flex-shrink-0 mb-1 shadow-lg ring-2 ring-white overflow-hidden">
+          {message.sender.avatar ? (
+            <img
+              src={message.sender.avatar}
+              alt={message.sender.name}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className={cn(
+                "w-full h-full flex items-center justify-center text-xs font-bold text-white",
+                isOwn ? "bg-teal-500" : "bg-teal-600",
+              )}
+            >
+              {message.sender.name?.charAt(0).toUpperCase() || "?"}
+            </div>
+          )}
+        </div>
 
         <div
           onContextMenu={handleContextMenu}
           className={cn(
-            "max-w-[75%] md:max-w-md px-4 py-3 cursor-pointer transition-all duration-300 animate-in fade-in slide-in-from-bottom-2",
+            "max-w-[75%] md:max-w-md px-4 py-2.5 cursor-pointer transition-all duration-300 animate-in fade-in slide-in-from-bottom-2",
             isOwn
               ? "bg-teal-50 text-stone-800 rounded-2xl rounded-br-md shadow-lg shadow-teal-100/50 hover:shadow-xl hover:shadow-teal-100/60 border border-teal-100"
               : "bg-white text-stone-800 rounded-2xl rounded-bl-md shadow-lg shadow-stone-200/50 hover:shadow-xl hover:shadow-stone-200/60 border-2 border-stone-200",
@@ -213,7 +219,7 @@ const MessageBubble = ({
           {message.replyTo && (
             <div
               className={cn(
-                "mb-3 pl-3 border-l-4 rounded-lg py-2 px-3 cursor-pointer transition-all duration-300 hover:opacity-80",
+                "mb-2 pl-3 border-l-4 rounded-lg py-2 px-3 cursor-pointer transition-all duration-300 hover:opacity-80",
                 isOwn
                   ? "border-l-teal-500 bg-teal-100/50"
                   : "border-l-teal-600 bg-stone-50",
@@ -228,20 +234,22 @@ const MessageBubble = ({
                 });
               }}
             >
-              <p className="text-xs font-bold text-teal-700 mb-0.5">
+              <p className="text-[10px] font-bold text-teal-700 mb-0.5">
                 {message.replyTo.sender?.name || "Unknown"}
               </p>
-              <p className="text-xs text-stone-500 truncate">
+              <p className="text-[10px] text-stone-500 truncate">
                 {message.replyTo.content || "📎 Media"}
               </p>
             </div>
           )}
 
-          {/* Sender label (You / Name) */}
+          {/* Sender Name - SMALL */}
           <p
             className={cn(
-              "text-xs font-semibold mb-1 flex items-center gap-1",
-              isOwn ? "text-stone-500 justify-end" : "text-teal-700 justify-start",
+              "text-[11px] font-semibold mb-0.5 flex items-center gap-1",
+              isOwn
+                ? "text-stone-400 justify-end"
+                : "text-teal-700 justify-start",
             )}
           >
             {!isOwn && (
@@ -295,7 +303,7 @@ const MessageBubble = ({
                 <>
                   {/* Media Content */}
                   {isMedia && message.mediaUrl ? (
-                    <div className="mb-3 -mx-1">
+                    <div className="mb-2 -mx-1">
                       {message.type === "IMAGE" && (
                         <div className="relative group/media">
                           <img
@@ -380,16 +388,16 @@ const MessageBubble = ({
                     </div>
                   ) : null}
 
-                  {/* Text Content */}
+                  {/* Message Text - BIGGER */}
                   {message.content && (
-                    <p className="text-sm break-words leading-relaxed whitespace-pre-wrap">
+                    <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap text-stone-800">
                       {message.content}
                     </p>
                   )}
 
-                  {/* Edited Tag */}
+                  {/* Edited Tag - Small */}
                   {message.isEdited && (
-                    <p className="text-xs text-stone-500 italic mt-1.5 flex items-center gap-1">
+                    <p className="text-[10px] text-stone-400 italic mt-1 flex items-center gap-1">
                       <span className="w-1 h-1 bg-stone-400 rounded-full"></span>
                       edited
                     </p>
@@ -397,7 +405,7 @@ const MessageBubble = ({
 
                   {/* Reactions */}
                   {message.reactions && message.reactions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-3 -mb-1">
+                    <div className="flex flex-wrap gap-1.5 mt-2 -mb-1">
                       {Object.entries(
                         message.reactions.reduce((acc: any, r: any) => {
                           const emoji = r.emoji;
@@ -432,14 +440,11 @@ const MessageBubble = ({
             </>
           )}
 
-          {/* Time and Status */}
-          <div
-            className={cn(
-              "flex items-center gap-2 justify-end text-xs mt-2",
-              "text-stone-500",
-            )}
-          >
-            <span className="font-medium">{timeStr}</span>
+          {/* Timestamp + Status - SMALL */}
+          <div className="flex items-center gap-1.5 justify-end mt-1.5">
+            <span className="text-[10px] text-stone-400 font-medium">
+              {timeStr}
+            </span>
             <StatusIcon />
           </div>
         </div>
