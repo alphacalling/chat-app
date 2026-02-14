@@ -17,7 +17,6 @@ import {
   Settings,
   MessageCircle,
   Sparkles,
-  MoreVertical,
   Trash2,
   LogOut as LeaveIcon,
 } from "lucide-react";
@@ -74,6 +73,21 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  // Helper function to safely extract array from API response
+  const extractChatsArray = (data: any): Chat[] => {
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    if (data?.chats && Array.isArray(data.chats)) {
+      return data.chats;
+    }
+    console.warn("Unexpected API response format:", data);
+    return [];
+  };
+
   useEffect(() => {
     fetchConversations();
   }, [user]);
@@ -85,11 +99,10 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         if (!user) return;
         const { data } = await api.get("/message/unread-counts");
         const next: Record<string, number> = {};
-        (data.data || data || []).forEach(
-          (item: { chatId: string; count: number }) => {
-            next[item.chatId] = item.count;
-          },
-        );
+        const countsArray = Array.isArray(data) ? data : data?.data || [];
+        countsArray.forEach((item: { chatId: string; count: number }) => {
+          next[item.chatId] = item.count;
+        });
         setUnreadCounts(next);
       } catch (error) {
         console.error("Failed to fetch unread counts:", error);
@@ -101,16 +114,17 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
 
   useEffect(() => {
     if (user?.id && conversations.length > 0) {
-      setConversations((prev) =>
-        prev.map((chat) => {
+      setConversations((prev) => {
+        if (!Array.isArray(prev)) return [];
+        return prev.map((chat) => {
           const updatedUsers = chat.users.map((u) =>
             u.id === user.id
               ? { ...u, name: user.name, avatar: user.avatar }
               : u,
           );
           return { ...chat, users: updatedUsers };
-        }),
-      );
+        });
+      });
     }
   }, [user?.id, user?.name, user?.avatar]);
 
@@ -119,6 +133,8 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
 
     const handleNewMessage = (newMessageReceived: any) => {
       setConversations((prev) => {
+        if (!Array.isArray(prev)) return [];
+
         const chatIndex = prev.findIndex(
           (c) => c.id === newMessageReceived.chatId,
         );
@@ -206,10 +222,13 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const fetchConversations = async () => {
     try {
       if (!user) return;
+      setLoading(true);
       const { data } = await api.get("/chat/fetch-chat");
-      setConversations(data.data || data);
+      const chatsArray = extractChatsArray(data);
+      setConversations(chatsArray);
     } catch (error) {
       console.error("Failed to fetch chats:", error);
+      setConversations([]); // Reset to empty array on error
     } finally {
       setLoading(false);
     }
@@ -231,7 +250,10 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const handleDeleteChat = async (chat: Chat) => {
     try {
       await chatAPI.deleteChat(chat.id);
-      setConversations((prev) => prev.filter((c) => c.id !== chat.id));
+      setConversations((prev) => {
+        if (!Array.isArray(prev)) return [];
+        return prev.filter((c) => c.id !== chat.id);
+      });
     } catch (error) {
       console.error("Failed to delete chat:", error);
     }
@@ -240,7 +262,10 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const handleLeaveGroup = async (chat: Chat) => {
     try {
       await chatAPI.leaveGroup(chat.id);
-      setConversations((prev) => prev.filter((c) => c.id !== chat.id));
+      setConversations((prev) => {
+        if (!Array.isArray(prev)) return [];
+        return prev.filter((c) => c.id !== chat.id);
+      });
     } catch (error) {
       console.error("Failed to leave group:", error);
     }
@@ -248,6 +273,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
 
   const handleStartChat = (newChat: Chat) => {
     setConversations((prev) => {
+      if (!Array.isArray(prev)) return [newChat];
       const exists = prev.find((c) => c.id === newChat.id);
       if (exists) {
         return [exists, ...prev.filter((c) => c.id !== newChat.id)];
@@ -260,7 +286,10 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   };
 
   const handleGroupCreated = (newGroup: Chat) => {
-    setConversations((prev) => [newGroup, ...prev]);
+    setConversations((prev) => {
+      if (!Array.isArray(prev)) return [newGroup];
+      return [newGroup, ...prev];
+    });
     handleSelectChat(newGroup);
     setShowCreateGroup(false);
   };
@@ -286,15 +315,18 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     }
   };
 
-  const filteredConversations = conversations.filter((chat) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const sender = getSender(user, chat.users);
-    const chatName = chat.isGroupChat
-      ? chat.chatName?.toLowerCase() || ""
-      : sender?.name?.toLowerCase() || "";
-    return chatName.includes(query);
-  });
+  // Safely filter conversations
+  const filteredConversations = Array.isArray(conversations)
+    ? conversations.filter((chat) => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        const sender = getSender(user, chat.users);
+        const chatName = chat.isGroupChat
+          ? chat.chatName?.toLowerCase() || ""
+          : sender?.name?.toLowerCase() || "";
+        return chatName.includes(query);
+      })
+    : [];
 
   return (
     <div className="w-full h-full bg-white flex flex-col border-r border-gray-200">
@@ -400,9 +432,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             <div className="flex justify-center items-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <div className="animate-spin h-8 w-8 border-3 border-slate-600 border-t-transparent rounded-full"></div>
-                <p className="text-gray-500 text-sm">
-                  Loading chats...
-                </p>
+                <p className="text-gray-500 text-sm">Loading chats...</p>
               </div>
             </div>
           ) : filteredConversations.length === 0 ? (
@@ -491,9 +521,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                         {chat.latestMessage ? (
                           <>
                             {chat.latestMessage.sender.name === user?.name && (
-                              <span className="text-gray-500">
-                                You:{" "}
-                              </span>
+                              <span className="text-gray-500">You: </span>
                             )}
                             {chat.latestMessage.content || "📎 Media"}
                           </>
@@ -518,7 +546,9 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                             }
                           }}
                           className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
-                          title={chat.isGroupChat ? "Leave group" : "Delete chat"}
+                          title={
+                            chat.isGroupChat ? "Leave group" : "Delete chat"
+                          }
                         >
                           {chat.isGroupChat ? (
                             <LeaveIcon className="h-3.5 w-3.5" />
