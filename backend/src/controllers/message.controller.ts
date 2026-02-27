@@ -5,6 +5,7 @@ import { getFullFileUrl } from "../utils/fileUpload.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { messageService } from "../services/message.service.js";
 import { blockService } from "../services/block.service.js";
+import { onlineUsers } from "../socket/socket.js";
 
 export class MessageController {
   // Get messages for a chat
@@ -190,7 +191,7 @@ export class MessageController {
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io) {
-        io.to(`chat:${chatId}`).emit("message:new", {
+        const payload = {
           id: message.id,
           content: message.content,
           type: message.type,
@@ -201,7 +202,24 @@ export class MessageController {
           sender: message.sender,
           replyTo: message.replyTo,
           replyToId: message.replyToId,
+        };
+
+        // To users who have joined the chat room
+        io.to(`chat:${chatId}`).emit("message:new", payload);
+
+        // Also send directly to each participant's socket for sidebar updates,
+        // even if they haven't joined the chat room yet.
+        const participants = await prisma.chatParticipant.findMany({
+          where: { chatId },
+          select: { userId: true },
         });
+
+        for (const p of participants) {
+          const socketId = onlineUsers.get(p.userId);
+          if (socketId) {
+            io.to(socketId).emit("message:new", payload);
+          }
+        }
       }
 
       res.status(201).json({
@@ -336,7 +354,7 @@ export class MessageController {
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io) {
-        io.to(`chat:${chatId}`).emit("message:new", {
+        const payload = {
           id: message.id,
           content: message.content,
           type: message.type,
@@ -349,7 +367,23 @@ export class MessageController {
           fileName: message.fileName,
           fileSize: message.fileSize,
           mimeType: message.mimeType,
+        };
+
+        // To users currently in the chat room
+        io.to(`chat:${chatId}`).emit("message:new", payload);
+
+        // And directly to each participant's socket (for sidebar updates)
+        const participants = await prisma.chatParticipant.findMany({
+          where: { chatId },
+          select: { userId: true },
         });
+
+        for (const p of participants) {
+          const socketId = onlineUsers.get(p.userId);
+          if (socketId) {
+            io.to(socketId).emit("message:new", payload);
+          }
+        }
       }
 
       res.status(201).json({

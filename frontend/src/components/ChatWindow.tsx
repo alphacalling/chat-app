@@ -519,7 +519,7 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               </div>
             </div>
           ) : (
-            messages.slice().reverse().map((message, index) => {
+            messages.map((message, index) => {
               const isOwn = message.senderId === user?.id;
               return (
                 <div

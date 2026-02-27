@@ -160,10 +160,55 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
 
           updatedChats.splice(chatIndex, 1);
           return [updatedChat, ...updatedChats];
-        } else {
-          fetchConversations();
-          return prev;
         }
+
+        // If chat is not in the list yet (e.g. a brand new 1-on-1),
+        // only auto-create it on the RECEIVER side. The sender already
+        // has the chat from starting it via the REST API.
+        if (!user) return prev;
+
+        const sender = newMessageReceived.sender;
+        if (!sender || sender.id === user.id) return prev;
+
+        const newChat: Chat = {
+          id: newMessageReceived.chatId,
+          chatName: null,
+          isGroupChat: false,
+          avatar: sender.avatar || null,
+          users: [
+            {
+              id: user.id,
+              name: user.name,
+              email: user.email || null,
+              phone: user.phone,
+              avatar: user.avatar || null,
+              isOnline: true,
+              lastSeen: undefined,
+            },
+            {
+              id: sender.id,
+              name: sender.name,
+              email: sender.email || null,
+              phone: "",
+              avatar: sender.avatar || null,
+              isOnline: false,
+              lastSeen: undefined,
+            },
+          ],
+          latestMessage: {
+            id: newMessageReceived.id || Date.now().toString(),
+            content: newMessageReceived.content,
+            createdAt: newMessageReceived.createdAt,
+            sender: {
+              id: sender.id,
+              name: sender.name,
+              email: sender.email || null,
+            },
+          },
+          updatedAt: new Date().toISOString(),
+        };
+
+        return [newChat, ...prev];
       });
 
       // Increase unread count only for messages from others, in chats that are not currently open
