@@ -7,7 +7,8 @@ import {
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { prisma } from "../configs/database.js";
-import { saveFile, getFullFileUrl } from "../utils/fileUpload.js";
+import { getFullFileUrl } from "../utils/fileUpload.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 export class AuthController {
   //* register user
@@ -422,14 +423,15 @@ export class AuthController {
         return;
       }
 
-      // Save file
-      const { fileUrl } = await saveFile(file.buffer, file.originalname, {
-        mimeType: file.mimetype,
+      // Upload to Cloudinary
+      const uploadResult = await uploadToCloudinary(file.buffer, {
+        resource_type: "image",
+        folder: "chit-chat-avatars",
       });
 
-      // Update user avatar
+      // Update user avatar with Cloudinary URL
       const user = await authService.updateProfile(req.user.id, {
-        avatar: fileUrl,
+        avatar: uploadResult.secure_url || uploadResult.url,
       });
       const baseUrl = req.protocol + "://" + req.get("host");
       const userWithFullAvatar = {

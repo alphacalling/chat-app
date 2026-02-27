@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 import { prisma } from "../configs/database.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
-import { saveFile, getFullFileUrl } from "../utils/fileUpload.js";
+import { getFullFileUrl } from "../utils/fileUpload.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { messageService } from "../services/message.service.js";
 import { blockService } from "../services/block.service.js";
 
@@ -284,19 +285,25 @@ export class MessageController {
       else if (file.mimetype.startsWith("video/")) messageType = "VIDEO";
       else if (file.mimetype.startsWith("audio/")) messageType = "AUDIO";
 
-      // Save file
-      const { fileUrl, mimeType, fileSize, fileName: savedFileName } = await saveFile(
-        file.buffer,
-        file.originalname,
-        { mimeType: file.mimetype }
-      );
+      // Upload file to Cloudinary
+      const cloudinaryResourceType =
+        messageType === "IMAGE"
+          ? "image"
+          : messageType === "VIDEO"
+          ? "video"
+          : "raw";
 
-      // Extract file name
+      const uploadResult = await uploadToCloudinary(file.buffer, {
+        resource_type: cloudinaryResourceType,
+        folder: "chit-chat-uploads",
+      });
+
       const fileName = file.originalname;
+      const fileSize = uploadResult.bytes;
+      const mimeType = file.mimetype;
 
-      // Get full URL for the file
-      const baseUrl = req.protocol + "://" + req.get("host");
-      const fullFileUrl = getFullFileUrl(fileUrl, baseUrl);
+      // Use secure Cloudinary URL as mediaUrl
+      const fullFileUrl = uploadResult.secure_url || uploadResult.url;
 
       // Create message in database (store relative URL, we'll convert when sending)
       const message = await prisma.message.create({
@@ -304,10 +311,10 @@ export class MessageController {
           chatId,
           senderId: req.user.id,
           type: messageType,
-          mediaUrl: fileUrl, // Store relative URL in DB
-          fileName: fileName,
-          fileSize: fileSize,
-          mimeType: mimeType,
+          mediaUrl: fullFileUrl,
+          fileName,
+          fileSize,
+          mimeType,
           content: file.originalname,
           status: "SENT",
         },
@@ -316,11 +323,8 @@ export class MessageController {
         },
       });
 
-      // Create response with full URL
-      const messageWithFullUrl = {
-        ...message,
-        mediaUrl: fullFileUrl,
-      };
+      // Message already has full Cloudinary URL
+      const messageWithFullUrl = message;
 
       // Update chat updatedAt
       await prisma.chat.update({

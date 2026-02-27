@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { statusService } from "../services/status.service.js";
-import { saveFile, getFullFileUrl } from "../utils/fileUpload.js";
+import { getFullFileUrl } from "../utils/fileUpload.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 
 interface FileRequest extends AuthRequest {
@@ -29,24 +30,20 @@ export class StatusController {
       const { content, type = "TEXT" } = req.body;
       let mediaUrl: string | undefined;
 
-      // Handle file upload if present
+      // Handle file upload if present (Cloudinary)
       if (req.file && req.file.buffer) {
         try {
-          // Save file to disk
-          const { fileUrl } = await saveFile(
-            req.file.buffer,
-            req.file.originalname,
-            { mimeType: req.file.mimetype }
-          );
+          const uploadResult = await uploadToCloudinary(req.file.buffer, {
+            resource_type: type === "VIDEO" ? "video" : "image",
+            folder: "chit-chat-status",
+          });
 
-          // Get full URL for the file
-          const baseUrl = req.protocol + "://" + req.get("host");
-          mediaUrl = getFullFileUrl(fileUrl, baseUrl);
+          mediaUrl = uploadResult.secure_url || uploadResult.url;
         } catch (error) {
-          console.error("Error saving status file:", error);
+          console.error("Error uploading status file to Cloudinary:", error);
           res.status(400).json({
             success: false,
-            message: "Failed to save file",
+            message: "Failed to upload file",
           } as ApiResponse);
           return;
         }

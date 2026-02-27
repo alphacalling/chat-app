@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { chatService } from "../services/chat.service.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 export class ChatController {
   //* Access or Create Chat
@@ -511,28 +512,14 @@ export class ChatController {
         return;
       }
 
-      // Import file upload utilities
-      const { saveFile } = await import("../utils/fileUpload.js");
-
-      console.log("Saving file...");
-      console.log("File name:", file.originalname);
-      console.log("File mimeType:", file.mimetype);
-      console.log("File buffer size:", file.buffer?.length || 0);
-      
-      // Validate file properties before saving
-      if (!file.originalname || typeof file.originalname !== "string") {
-        throw new Error("Invalid file: originalname is missing or invalid");
-      }
-      
-      if (!file.buffer || !Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
-        throw new Error("Invalid file: buffer is missing or empty");
-      }
-      
-      // Save file
-      const { fileUrl } = await saveFile(file.buffer, file.originalname, {
-        mimeType: file.mimetype || "image/jpeg",
+      // Upload to Cloudinary
+      console.log("Uploading group avatar to Cloudinary...");
+      const uploadResult = await uploadToCloudinary(file.buffer, {
+        resource_type: "image",
+        folder: "chit-chat-group-avatars",
       });
-      console.log("File saved, URL:", fileUrl);
+      const fileUrl = uploadResult.secure_url || uploadResult.url;
+      console.log("Cloudinary upload complete, URL:", fileUrl);
 
       console.log("Updating group avatar in database...");
       const updated = await chatService.updateGroupAvatar(
