@@ -65,6 +65,7 @@ const MessageBubble = ({
   const [editContent, setEditContent] = useState(message.content || "");
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const [emojiPickerPos, setEmojiPickerPos] = useState({ x: 0, y: 0 });
+  const [showMedia, setShowMedia] = useState(false);
 
   const timeStr = format(new Date(message.createdAt), "HH:mm");
   const isDeleted =
@@ -304,8 +305,49 @@ const MessageBubble = ({
                   {/* Media Content */}
                   {isMedia && message.mediaUrl ? (
                     <div className="mb-2 -mx-1">
-                      {message.type === "IMAGE" && (
-                        <div className="relative group/media">
+                      {/* Preview card (click to load) for non-document media */}
+                      {!showMedia && message.type !== "DOCUMENT" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMedia(true);
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-3 rounded-xl px-3 py-2 border-2 transition-all duration-300",
+                            isOwn
+                              ? "bg-teal-50 border-teal-200 hover:bg-teal-100"
+                              : "bg-stone-50 border-stone-200 hover:bg-stone-100",
+                          )}
+                        >
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-teal-600 text-white">
+                            {message.type === "IMAGE" && (
+                              <Image className="h-5 w-5" />
+                            )}
+                            {message.type === "VIDEO" && (
+                              <Video className="h-5 w-5" />
+                            )}
+                            {message.type === "AUDIO" && (
+                              <Music className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 text-left">
+                            <p className="text-xs font-semibold text-stone-700 truncate">
+                              {message.fileName || "Media file"}
+                            </p>
+                            <p className="text-[11px] text-stone-500">
+                              Tap to view / download
+                              {message.fileSize
+                                ? ` • ${(message.fileSize / 1024 / 1024).toFixed(2)} MB`
+                                : ""}
+                            </p>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Actual media, only rendered after click */}
+                      {showMedia && message.type === "IMAGE" && (
+                        <div className="relative group/media mt-2">
                           <img
                             src={message.mediaUrl}
                             alt="Media"
@@ -327,8 +369,9 @@ const MessageBubble = ({
                           </div>
                         </div>
                       )}
-                      {message.type === "VIDEO" && (
-                        <div className="relative">
+
+                      {showMedia && message.type === "VIDEO" && (
+                        <div className="relative mt-2">
                           <video
                             src={message.mediaUrl}
                             controls
@@ -345,8 +388,9 @@ const MessageBubble = ({
                           </div>
                         </div>
                       )}
-                      {message.type === "AUDIO" && (
-                        <div className="bg-stone-50 rounded-xl p-3 flex items-center gap-3 border border-stone-200">
+
+                      {showMedia && message.type === "AUDIO" && (
+                        <div className="bg-stone-50 rounded-xl p-3 flex items-center gap-3 border border-stone-200 mt-2">
                           <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center shadow-lg">
                             <Music className="h-5 w-5 text-white" />
                           </div>
@@ -363,6 +407,8 @@ const MessageBubble = ({
                           />
                         </div>
                       )}
+
+                      {/* Documents behave like before: click to open/download */}
                       {message.type === "DOCUMENT" && (
                         <a
                           href={message.mediaUrl}
