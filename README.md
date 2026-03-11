@@ -17,7 +17,7 @@ A complete WhatsApp-like messaging application built with modern web technologie
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd web-socket
+cd <project-folder>  # e.g. chit-chat-app
 
 # Install backend dependencies
 cd backend
@@ -693,22 +693,22 @@ Client (Browser) ←→ WebSocket ←→ Server ←→ Database
 - WebSocket is bidirectional (both can send anytime)
 - Perfect for real-time features like chat
 
-### How File Uploads Work
+### How Media Uploads Work (Cloudinary)
 
 **Process**:
 1. **Frontend**: User selects file → Creates `FormData` → Sends via POST
-2. **Backend**: Receives multipart/form-data → Parses boundary → Extracts file
-3. **Validation**: Checks file type, size
-4. **Storage**: Saves file to disk with unique name
-5. **Database**: Stores file path/URL
-6. **Response**: Returns file URL to frontend
-7. **Frontend**: Displays file using URL
+2. **Backend**: Receives multipart/form-data using a custom parser
+3. **Validation**: Checks file type and size
+4. **Cloud Upload**: Uploads the raw buffer to **Cloudinary** using `uploadToCloudinary`
+5. **Database**: Stores the secure Cloudinary URL and metadata
+6. **Response**: Returns the Cloudinary URL to the frontend
+7. **Frontend**: Displays media directly from Cloudinary CDN
 
-**Why Custom Parser?**
-- Express doesn't parse multipart by default
-- Need control over file handling
-- Better error messages
-- Custom validation
+**Why Cloudinary?**
+- Optimized, globally distributed media delivery
+- Handles images, videos, and raw files
+- Built-in transformations and formats
+- Secure URLs (`secure_url`) out of the box
 
 ### How Authentication Works
 
@@ -946,7 +946,7 @@ io.to(`chat:${chatId}`).emit("message:new", message);
 ## 📁 Project Structure
 
 ```
-web-socket/
+chit-chat-app/
 ├── backend/
 │   ├── src/
 │   │   ├── server.ts              # Express server setup
@@ -1202,6 +1202,6 @@ For issues or questions:
 
 ✅ **Production Ready** - All features implemented and tested
 
-**Last Updated**: January 2026
+**Last Updated**: March 2026
 
 **Happy Coding! 🚀**

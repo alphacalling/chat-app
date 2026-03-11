@@ -185,7 +185,7 @@ const MessageBubble = ({
         )}
 
         {/* Avatar - Shows for BOTH sender and receiver */}
-        <div className="w-9 h-9 rounded-full flex-shrink-0 mb-1 shadow-lg ring-2 ring-white overflow-hidden">
+        <div className="w-9 h-9 rounded-full shrink-0 mb-1 shadow-lg ring-2 ring-white overflow-hidden">
           {message.sender.avatar ? (
             <img
               src={message.sender.avatar}
@@ -207,7 +207,7 @@ const MessageBubble = ({
         <div
           onContextMenu={handleContextMenu}
           className={cn(
-            "max-w-[75%] md:max-w-md px-4 py-2.5 cursor-pointer transition-all duration-300 animate-in fade-in slide-in-from-bottom-2",
+            "max-w-[75%] md:max-w-md px-4 py-1 cursor-pointer transition-all duration-200 animate-in fade-in slide-in-from-bottom-2",
             isOwn
               ? "bg-teal-50 text-stone-800 rounded-2xl rounded-br-md shadow-lg shadow-teal-100/50 hover:shadow-xl hover:shadow-teal-100/60 border border-teal-100"
               : "bg-white text-stone-800 rounded-2xl rounded-bl-md shadow-lg shadow-stone-200/50 hover:shadow-xl hover:shadow-stone-200/60 border-2 border-stone-200",
@@ -220,7 +220,7 @@ const MessageBubble = ({
           {message.replyTo && (
             <div
               className={cn(
-                "mb-2 pl-3 border-l-4 rounded-lg py-2 px-3 cursor-pointer transition-all duration-300 hover:opacity-80",
+                "mb-2 pl-3 border-l-4 rounded-lg py-1 px-3 cursor-pointer transition-all duration-300 hover:opacity-80",
                 isOwn
                   ? "border-l-teal-500 bg-teal-100/50"
                   : "border-l-teal-600 bg-stone-50",

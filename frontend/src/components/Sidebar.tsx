@@ -398,18 +398,18 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                 {user?.name}
               </span>
 
-              <div className="flex items-center gap-1.5 bg-slate-700 px-2 py-0.5 rounded-full">
-                <div
+              {/* <div className="flex items-center gap-1.5 bg-slate-700 px-2 py-0.5 rounded-full"> */}
+                {/* <div
                   className={`w-2 h-2 rounded-full ${
                     isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"
                   }`}
-                />
+                /> */}
 
                 {/* Text only visible on desktop */}
-                <span className="hidden lg:block text-xs text-slate-300 font-medium">
-                  {isConnected ? "Online" : "Offline"}
+                <span className={`w-2 h-2 rounded-full flex items-center gap-1.5`}>
+                  {isConnected ? "🟢" : "🔴"}
                 </span>
-              </div>
+              {/* </div> */}
             </div>
           </div>
         </div>

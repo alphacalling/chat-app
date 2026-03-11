@@ -417,8 +417,8 @@ const ChatWindow = ({
                 <div
                   className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                     otherUserOnline
-                      ? "bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse"
-                      : "bg-stone-400"
+                      ? "bg-green-500 shadow-lg shadow-emerald-500/50 animate-pulse"
+                      : "bg-red-500"
                   }`}
                 />
               )}
@@ -432,7 +432,7 @@ const ChatWindow = ({
             </div>
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 shrink-0">
           {!selectedChat.isGroupChat && sender && (
             <>
               <Button
@@ -589,7 +589,7 @@ const ChatWindow = ({
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="text-stone-500 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all duration-300"
+            className="text-stone-500 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all duration-300 cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>

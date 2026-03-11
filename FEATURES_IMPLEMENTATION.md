@@ -218,6 +218,16 @@ async unblockUser(blockerId, blockedId) {
 - Blocked users filtered from search
 - Messages from blocked users not shown
 
+### Settings & Profile Management UI
+
+**Location**: `frontend/src/components/SettingsModal.tsx`
+
+- Central place to manage profile information (name, about, email, gender)
+- Avatar upload with live refresh using `authAPI.uploadAvatar`
+- TOTP security management (generate secret/QR, enable/disable 2FA, backup codes)
+- Integrated blocked users list via `BlockedUsersList`
+- Uses `useAuth` context to keep profile data in sync across the app
+
 ---
 
 ## 💬 Real-time Messaging
@@ -417,7 +427,7 @@ async joinViaInviteLink(code, userId) {
 
 ## 📁 File Upload System
 
-### Custom Multipart Parser
+### Custom Multipart Parser + Cloudinary Integration
 
 **Why Custom?**
 - Express doesn't handle multipart/form-data by default
@@ -451,33 +461,47 @@ export const fileUploadMiddleware = (req, res, next) => {
 - Buffer handling
 - Error handling with detailed logs
 
-### File Saving
+### Cloudinary Upload Helper
 
-**Implementation** (`backend/src/utils/fileUpload.ts`):
+**Implementation** (`backend/src/utils/cloudinary.ts`):
 
 ```typescript
-async function saveFile(buffer, originalFileName, options) {
-  // 1. Generate unique filename: {timestamp}-{random}.{ext}
-  // 2. Get file path: /uploads/{filename}
-  // 3. Write buffer to disk
-  // 4. Return fileUrl: /uploads/{filename}
-  // 5. Frontend converts to full URL
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export async function uploadToCloudinary(
+  buffer: Buffer,
+  options: {
+    folder?: string;
+    resource_type?: "image" | "video" | "raw" | "auto";
+    public_id?: string;
+  } = {}
+) {
+  // Convert buffer to stream and upload via cloudinary.uploader.upload_stream
+  // Resolve with url, secure_url, public_id, bytes, format, resource_type
 }
 ```
 
-**URL Generation**:
-```typescript
-function getFullFileUrl(filePath, baseUrl) {
-  // If already full URL, return as is
-  // If relative path, prepend baseUrl
-  // Default: http://localhost:5000/uploads/{filename}
-}
-```
+**Usage in Controllers**:
+
+- **Messages** (`backend/src/controllers/message.controller.ts`)
+  - Detects message type from MIME (IMAGE/VIDEO/AUDIO/DOCUMENT)
+  - Maps to Cloudinary `resource_type` (`image`, `video`, or `raw`)
+  - Uploads to folder `chit-chat-uploads`
+  - Stores **secure Cloudinary URL** as `mediaUrl`
+
+- **Statuses** (`backend/src/controllers/status.controller.ts`)
+  - Uploads status media (image/video) to folder `chit-chat-status`
+  - Uses `secure_url` for `mediaUrl` when available
+
+- **Avatars** (`backend/src/controllers/auth.controller.ts`, via `uploadToCloudinary` if wired)
 
 **Frontend Integration**:
-- FormData creation
-- No manual Content-Type header (let axios set boundary)
-- Cache-busting: `?t=${Date.now()}`
+- Sends files using `FormData` without setting `Content-Type` manually
+- Renders media using the Cloudinary URLs returned by the API
 
 ---
 
@@ -575,6 +599,15 @@ async removeReaction(statusId, userId) {
 - Display reactions with counts
 - Own status shows view count
 
+### Status Viewer Experience
+
+**Location**: `frontend/src/components/StatusViewer.tsx`
+
+- Full-screen viewer with progress indicator and auto-advance (for non-video statuses)
+- Marks statuses as viewed using `statusAPI.viewStatus`
+- Supports adding/removing reactions and refreshes the current status from the server
+- For own statuses, shows viewers panel with who has seen the status
+
 ---
 
 ## 💬 Message Features
@@ -630,6 +663,14 @@ async addReaction(messageId, userId, emoji) {
 - Context menu on message
 - Emoji picker
 - Display reactions below message
+
+### Message Context Menu
+
+**Location**: `frontend/src/components/MessageContextMenu.tsx`
+
+- Provides rich actions on a message: Reply, React, Pin/Unpin, Edit (own messages), Delete (own messages)
+- Smart positioning to stay within viewport bounds and auto-closes on scroll, resize, escape, or backdrop click
+- Used by message components to keep the interaction model consistent across chats
 
 ### Message Replies
 

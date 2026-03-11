@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
@@ -9,17 +9,50 @@ import { useAuth } from "./context/useAuth";
 
 const Home = () => {
   const [selectedChat, setSelectedChat] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showSidebarOnMobile, setShowSidebarOnMobile] = useState(true);
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    updateIsMobile();
+    window.addEventListener("resize", updateIsMobile);
+    return () => window.removeEventListener("resize", updateIsMobile);
+  }, []);
+
+  const handleSelectChat = (chat: any) => {
+    setSelectedChat(chat);
+    if (isMobile) {
+      setShowSidebarOnMobile(false);
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-whatsapp-dark">
-      {/* Sidebar - hidden on mobile, visible on desktop */}
-      <div className="hidden md:flex md:w-1/3 lg:w-1/3">
-        <Sidebar onSelectChat={setSelectedChat} />
-      </div>
-      {/* Chat Window - full width on mobile, 2/3 on desktop */}
-      <div className="w-full md:w-2/3">
-        <ChatWindow selectedChat={selectedChat} onChatUpdate={setSelectedChat} />
-      </div>
+      {/* Sidebar */}
+      {isMobile ? (
+        showSidebarOnMobile && (
+          <div className="w-full h-full">
+            <Sidebar onSelectChat={handleSelectChat} />
+          </div>
+        )
+      ) : (
+        <div className="w-[380px] max-w-sm h-full">
+          <Sidebar onSelectChat={handleSelectChat} />
+        </div>
+      )}
+
+      {/* Chat Window */}
+      {(!isMobile || !showSidebarOnMobile) && (
+        <div className="flex-1 min-w-0 h-full">
+          <ChatWindow
+            selectedChat={selectedChat}
+            onChatUpdate={setSelectedChat}
+            onBack={isMobile ? () => setShowSidebarOnMobile(true) : undefined}
+          />
+        </div>
+      )}
     </div>
   );
 };
