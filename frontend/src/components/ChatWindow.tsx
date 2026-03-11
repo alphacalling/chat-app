@@ -7,6 +7,7 @@ import {
   Pin,
   X,
   MessageCircle,
+  ArrowLeft,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
 import MessageBubble from "./Messagebubble";
@@ -57,14 +58,21 @@ interface Chat {
   avatar?: string | null;
   users: ChatUser[];
   latestMessage?: any;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 interface ChatWindowProps {
   selectedChat: Chat | null;
   onChatUpdate?: (updatedChat: Chat) => void;
+  onBack?: () => void;
 }
 
-const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
+const ChatWindow = ({
+  selectedChat,
+  onChatUpdate,
+  onBack,
+}: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [otherUserOnline, setOtherUserOnline] = useState(false);
@@ -364,6 +372,16 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
       {/* Header */}
       <div className="bg-white border-b-2 border-stone-200 p-3.5 flex items-center justify-between flex-shrink-0 shadow-sm">
         <div className="flex items-center gap-3 flex-1 min-w-0">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="mr-1 h-9 w-9 rounded-full hover:bg-stone-100 text-stone-600 md:hidden"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <Avatar className="h-12 w-12 ring-4 ring-teal-100 shadow-lg transition-all duration-300 hover:ring-teal-200">
             <AvatarImage
               src={
@@ -431,14 +449,14 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               >
                 <Video className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
               </Button>
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="icon"
                 className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
                 onClick={() => setShowUserProfile(true)}
               >
                 <Info className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
-              </Button>
+              </Button> */}
             </>
           )}
           {selectedChat.isGroupChat && (
@@ -446,26 +464,30 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               variant="ghost"
               size="icon"
               onClick={() => setShowGroupInfo(true)}
-              className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
+              className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl cursor-pointer"
             >
-              <Info className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
+              <MoreVertical className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
+              {/* <Info className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" /> */}
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl"
-          >
-            <MoreVertical className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
-          </Button>
+          {!selectedChat.isGroupChat && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowUserProfile(true)}
+              className="h-10 w-10 hover:bg-stone-100 transition-all duration-300 rounded-xl cursor-pointer"
+            >
+              <MoreVertical className="h-5 w-5 text-stone-500 hover:text-teal-600 transition-colors" />
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Pinned Message Banner */}
       {pinnedMessage && (
-        <div className="bg-amber-50 border-b-2 border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="bg-amber-50 border-b-2 border-amber-200 px-4 py-1 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center">
+            <div className="shrink-0 w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center">
               <Pin className="h-5 w-5 text-amber-700" />
             </div>
             <div className="flex-1 min-w-0">
@@ -484,7 +506,7 @@ const ChatWindow = ({ selectedChat, onChatUpdate }: ChatWindowProps) => {
               );
               element?.scrollIntoView({ behavior: "smooth", block: "center" });
             }}
-            className="text-teal-600 hover:text-teal-700 text-sm font-bold px-4 py-2 hover:bg-amber-100 rounded-lg transition-all duration-300"
+            className="text-teal-600 hover:text-teal-700 text-sm font-bold px-4 py-2 hover:bg-amber-100 rounded-lg transition-all duration-300 cursor-pointer"
           >
             Jump
           </button>

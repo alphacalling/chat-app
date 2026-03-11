@@ -159,7 +159,7 @@ const UserProfileModal = ({
       <DialogContent className="max-w-md bg-white border-2 border-gray-200 rounded-3xl shadow-2xl p-0 overflow-hidden">
         <DialogHeader className="p-0">
           {/* Header with Avatar */}
-          <div className="bg-slate-800 p-8 pb-12">
+          <div className="bg-gray-800 p-5 pb-5">
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-32 w-32 ring-4 ring-slate-600 shadow-2xl">
                 <AvatarImage
@@ -279,7 +279,7 @@ const UserProfileModal = ({
             <Button
               onClick={handleBlock}
               disabled={blocking}
-              className={`w-full rounded-xl h-12 font-bold shadow-lg transition-all duration-300 ${
+              className={`w-full rounded-xl h-12 font-bold shadow-lg transition-all duration-300 cursor-pointer ${
                 isBlocked
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                   : "bg-red-600 hover:bg-red-700 text-white"

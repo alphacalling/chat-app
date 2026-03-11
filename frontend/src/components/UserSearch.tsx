@@ -71,7 +71,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
             onClick={onClose}
             className="text-slate-300 hover:text-white hover:bg-slate-700 p-2 rounded-full transition-all duration-300"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 cursor-pointer" />
           </button>
         </div>
 
@@ -93,7 +93,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
             <Button
               onClick={handleSearch}
               disabled={loading || !search.trim()}
-              className="bg-slate-700 hover:bg-slate-800 h-12 px-6 rounded-xl font-bold shadow-lg disabled:opacity-50"
+              className="bg-slate-700 hover:bg-slate-800 h-12 px-6 rounded-xl font-bold shadow-lg disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />

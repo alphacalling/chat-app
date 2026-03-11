@@ -173,9 +173,9 @@ const SettingsModal = ({
     <>
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] bg-white border-2 border-gray-200 rounded-3xl shadow-2xl overflow-hidden">
-          <DialogHeader className="border-b-2 border-gray-200 pb-4 bg-gray-50">
-            <DialogTitle className="text-gray-800 flex items-center gap-3 text-xl font-bold">
-              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shadow-lg">
+          <DialogHeader className="border-b-2 border-gray-200 pb-3 bg-gray-50 rounded-2xl mr-4">
+            <DialogTitle className="text-gray-800 flex items-center gap-3 text-2xl font-bold mt-0">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shadow-lg mt-3 ml-3">
                 <User className="h-5 w-5 text-white" />
               </div>
               Settings
@@ -195,7 +195,7 @@ const SettingsModal = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-slate-600 rounded-xl"
+                    className="text-slate-600 rounded-xl cursor-pointer"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
@@ -306,7 +306,7 @@ const SettingsModal = ({
                               gender: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-slate-400 transition-all duration-300"
+                          className="w-full px-2 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-slate-400 transition-all duration-300 cursor-pointer"
                         >
                           <option value="">Not specified</option>
                           <option value="MALE">Male</option>
@@ -318,7 +318,7 @@ const SettingsModal = ({
                         <Button
                           onClick={handleSaveProfile}
                           disabled={savingProfile}
-                          className="flex-1 bg-slate-700 hover:bg-slate-800 rounded-xl h-11 font-bold shadow-lg"
+                          className="flex-1 bg-slate-700 hover:bg-slate-800 rounded-xl h-11 font-bold shadow-lg cursor-pointer"
                         >
                           {savingProfile ? (
                             <div className="flex items-center gap-2">
@@ -343,7 +343,7 @@ const SettingsModal = ({
                               gender: user?.gender || "",
                             });
                           }}
-                          className="hover:bg-red-50 hover:text-red-600 rounded-xl h-11"
+                          className="hover:bg-red-50 hover:text-red-600 rounded-xl h-11 cursor-pointer"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -439,7 +439,7 @@ const SettingsModal = ({
                         {!qrCode ? (
                           <Button
                             onClick={handleGenerateTOTP}
-                            className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl h-11 font-bold shadow-lg"
+                            className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl h-11 font-bold shadow-lg cursor-pointer"
                           >
                             <Sparkles className="h-4 w-4 mr-2" />
                             Generate QR Code
@@ -481,7 +481,7 @@ const SettingsModal = ({
                                   variant="ghost"
                                   size="sm"
                                   onClick={copyBackupCodes}
-                                  className="text-yellow-700 hover:bg-yellow-100 rounded-lg h-8"
+                                  className="text-yellow-700 hover:bg-yellow-100 rounded-lg h-8 cursor-pointer"
                                 >
                                   {copied ? (
                                     <Check className="h-4 w-4 text-green-600" />

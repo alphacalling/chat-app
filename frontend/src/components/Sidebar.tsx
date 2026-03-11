@@ -376,7 +376,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   return (
     <div className="w-full h-full bg-white flex flex-col border-r border-gray-200">
       {/* Header */}
-      <div className="p-4 bg-slate-800 flex justify-between items-center shrink-0 shadow-sm">
+      <div className="p-3.5 bg-slate-800 flex justify-between items-center shrink-0 shadow-sm">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Avatar className="h-12 w-12 ring-2 ring-slate-600 shadow-sm">
             <AvatarImage
@@ -397,25 +397,28 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
               <span className="text-white font-semibold text-sm block truncate">
                 {user?.name}
               </span>
+
               <div className="flex items-center gap-1.5 bg-slate-700 px-2 py-0.5 rounded-full">
                 <div
                   className={`w-2 h-2 rounded-full ${
                     isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"
                   }`}
                 />
-                <span className="text-xs text-slate-300 font-medium">
+
+                {/* Text only visible on desktop */}
+                <span className="hidden lg:block text-xs text-slate-300 font-medium">
                   {isConnected ? "Online" : "Offline"}
                 </span>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 shrink-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowSearch(true)}
-            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg cursor-pointer"
             title="New Chat"
           >
             <MessageSquarePlus className="h-5 w-5" />
@@ -424,7 +427,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowCreateGroup(true)}
-            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg cursor-pointer"
             title="New Group"
           >
             <Users className="h-5 w-5" />
@@ -433,7 +436,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(true)}
-            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg"
+            className="h-10 w-10 hover:bg-slate-700 text-white rounded-lg cursor-pointer"
             title="Settings"
           >
             <Settings className="h-5 w-5" />
@@ -445,7 +448,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
               await logout();
               navigate("/login");
             }}
-            className="h-10 w-10 hover:bg-red-600 text-white rounded-lg"
+            className="h-10 w-10 hover:bg-red-600 text-white rounded-lg cursor-pointer"
             title="Logout"
           >
             <LogOut className="h-5 w-5" />
@@ -590,7 +593,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
                               handleDeleteChat(chat);
                             }
                           }}
-                          className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                          className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                           title={
                             chat.isGroupChat ? "Leave group" : "Delete chat"
                           }

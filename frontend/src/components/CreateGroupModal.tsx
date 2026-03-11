@@ -164,7 +164,7 @@ const CreateGroupModal = ({
                   <span className="font-semibold">{user.name}</span>
                   <button
                     onClick={() => toggleUser(user)}
-                    className="text-slate-300 hover:text-white hover:bg-slate-600 rounded-full p-0.5 transition-all duration-300"
+                    className="text-slate-300 hover:text-white hover:bg-slate-600 rounded-full p-0.5 transition-all duration-300 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -192,7 +192,7 @@ const CreateGroupModal = ({
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="bg-slate-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-slate-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
@@ -291,7 +291,7 @@ const CreateGroupModal = ({
             disabled={
               creating || !groupName.trim() || selectedUsers.length === 0
             }
-            className="w-full bg-slate-700 text-white py-4 rounded-xl font-bold hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-500 shadow-xl hover:shadow-2xl hover:scale-[1.02] disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center gap-2"
+            className="w-full bg-slate-700 text-white py-4 rounded-xl font-bold hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-500 shadow-xl hover:shadow-2xl hover:scale-[1.02] disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
           >
             {creating ? (
               <>

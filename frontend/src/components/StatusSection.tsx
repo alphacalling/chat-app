@@ -294,7 +294,7 @@ const StatusSection = () => {
                     onClick={clearFile}
                     className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4 cursor-pointer" />
                   </button>
                 </div>
               ) : (
@@ -322,7 +322,7 @@ const StatusSection = () => {
             <Button
               onClick={handleCreateStatus}
               disabled={creating || (!statusContent && !statusFile)}
-              className="w-full bg-slate-700 hover:bg-slate-800 rounded-xl h-12 font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-slate-700 hover:bg-slate-800 rounded-xl h-12 font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {creating ? (
                 <div className="flex items-center gap-2">

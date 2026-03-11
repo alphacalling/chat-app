@@ -99,7 +99,7 @@ const MessageInput = ({
                 onClick={() => imageInputRef.current?.click()}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-stone-100 transition-all duration-300 group"
               >
-                <div className="w-12 h-12 bg-violet-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 bg-violet-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 cursor-pointer">
                   <Image className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs font-semibold text-stone-600">
@@ -111,7 +111,7 @@ const MessageInput = ({
                 onClick={() => videoInputRef.current?.click()}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-stone-100 transition-all duration-300 group"
               >
-                <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 cursor-pointer">
                   <Film className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs font-semibold text-stone-600">
@@ -123,7 +123,7 @@ const MessageInput = ({
                 onClick={() => fileInputRef.current?.click()}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-stone-100 transition-all duration-300 group"
               >
-                <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 cursor-pointer">
                   <FileText className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs font-semibold text-stone-600">
@@ -169,7 +169,7 @@ const MessageInput = ({
           variant="ghost"
           size="icon"
           onClick={() => setShowAttachMenu(!showAttachMenu)}
-          className={`h-11 w-11 rounded-xl transition-all duration-300 flex-shrink-0 ${
+          className={`h-11 w-11 rounded-xl transition-all duration-300 shrink-0 cursor-pointer ${
             showAttachMenu
               ? "bg-teal-600 text-white hover:bg-teal-700"
               : "hover:bg-stone-100 text-stone-500 hover:text-teal-600"
@@ -203,7 +203,7 @@ const MessageInput = ({
             setShowAttachMenu(false);
             setShowEmojiPicker((prev) => !prev);
           }}
-          className={`h-11 w-11 flex-shrink-0 rounded-xl transition-all duration-300 inline-flex items-center justify-center relative z-10 ${
+          className={`h-11 w-11 shrink-0 rounded-xl transition-all duration-300 inline-flex items-center justify-center relative z-10 cursor-pointer ${
             showEmojiPicker
               ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
               : "hover:bg-stone-100 text-stone-500 hover:text-amber-500"
@@ -218,7 +218,7 @@ const MessageInput = ({
           <Button
             type="submit"
             size="icon"
-            className="h-11 w-11 bg-teal-600 hover:bg-teal-700 text-white flex-shrink-0 shadow-lg shadow-teal-600/30 transition-all duration-300 rounded-xl hover:scale-105 hover:shadow-xl hover:shadow-teal-600/40"
+            className="h-11 w-11 bg-teal-600 hover:bg-teal-700 text-white shrink-0 shadow-lg shadow-teal-600/30 transition-all duration-300 rounded-xl hover:scale-105 hover:shadow-xl hover:shadow-teal-600/40 cursor-pointer"
           >
             <Send className="h-5 w-5" />
           </Button>
@@ -226,7 +226,7 @@ const MessageInput = ({
           <Button
             type="button"
             size="icon"
-            className="h-11 w-11 bg-teal-600 hover:bg-teal-700 text-white flex-shrink-0 shadow-lg shadow-teal-600/30 transition-all duration-300 rounded-xl hover:scale-105"
+            className="h-11 w-11 bg-teal-600 hover:bg-teal-700 text-white shrink-0 shadow-lg shadow-teal-600/30 transition-all duration-300 rounded-xl hover:scale-105 cursor-pointer"
           >
             <Mic className="h-5 w-5" />
           </Button>
@@ -243,7 +243,7 @@ const MessageInput = ({
               16,
               Math.min(window.innerWidth - 376, window.innerWidth / 2 - 180),
             ),
-            y: Math.max(16, window.innerHeight - 480),
+            y: window.innerHeight - 560,
           }}
           showQuickReactions={true}
         />

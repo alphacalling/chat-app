@@ -166,7 +166,7 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleUnblock(user.id)}
-                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all duration-300"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all duration-300 cursor-pointer"
                   >
                     <UserCheck className="h-4 w-4 mr-1" />
                     Unblock
