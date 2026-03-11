@@ -4,20 +4,11 @@ import { getFullFileUrl } from "../utils/fileUpload.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 
-interface FileRequest extends AuthRequest {
-  file?: {
-    originalname: string;
-    mimetype: string;
-    size: number;
-    buffer: Buffer;
-  };
-}
-
 export class StatusController {
   /**
    * Create a status
    */
-  async createStatus(req: FileRequest, res: Response): Promise<void> {
+  async createStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({

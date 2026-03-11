@@ -1,7 +1,8 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { authController } from "../controllers/auth.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { fileUploadMiddleware } from "../middlewares/fileUpload.middleware.js";
+import type { AuthRequest } from "../types/type.js";
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.patch("/me/update-profile", authMiddleware, (req, res) =>
 );
 
 // Get user profile by ID - MUST be before /auth/users to avoid route conflicts
-router.get("/user/:userId", authMiddleware, (req, res) => {
+router.get("/user/:userId", authMiddleware, (req: AuthRequest, res: Response) => {
   console.log("✅✅✅ Route /user/:userId MATCHED! ✅✅✅");
   console.log("📍 Request path:", req.path);
   console.log("📍 Request originalUrl:", req.originalUrl);

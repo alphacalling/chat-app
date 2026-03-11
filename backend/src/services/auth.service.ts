@@ -59,7 +59,8 @@ export class AuthService {
     });
 
     // Return user without sensitive fields
-    const { password, refreshToken, ...safeUser } = user;
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
+      user;
 
     return { user: safeUser, tokens };
   }
@@ -119,7 +120,13 @@ export class AuthService {
     });
 
     // Return user without sensitive fields
-    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } = user;
+    const {
+      password,
+      refreshToken,
+      totpSecret,
+      totpBackupCodes,
+      ...safeUser
+    } = user;
 
     return { user: safeUser, tokens };
   }
@@ -179,7 +186,13 @@ export class AuthService {
       throw new Error("User not found");
     }
 
-    const { password, refreshToken, ...safeUser } = user;
+    const {
+      password,
+      refreshToken,
+      totpSecret,
+      totpBackupCodes,
+      ...safeUser
+    } = user;
     return safeUser;
   }
 
@@ -259,7 +272,13 @@ export class AuthService {
       data,
     });
 
-    const { password, refreshToken, ...safeUser } = user;
+    const {
+      password,
+      refreshToken,
+      totpSecret,
+      totpBackupCodes,
+      ...safeUser
+    } = user;
     return safeUser;
   }
 }

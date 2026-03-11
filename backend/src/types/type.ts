@@ -32,6 +32,16 @@ export interface ServerToClientEvents {
   "group:updated": (data: any) => void;
   "group:user-added": (data: any) => void;
   "group:user-removed": (data: any) => void;
+  "group:user-left": (data: any) => void;
+  "message:edited": (data: any) => void;
+  "message:reaction": (data: any) => void;
+  "message:pinned": (data: any) => void;
+  "message:unpinned": (data: any) => void;
+  "status:new": (data: any) => void;
+  "status:viewed": (data: any) => void;
+  "status:reaction": (data: any) => void;
+  "status:reaction:removed": (data: any) => void;
+  "status:deleted": (data: any) => void;
   error: (error: { message: string }) => void;
 }
 
@@ -95,7 +105,10 @@ export interface SocketData {
 }
 
 // User without sensitive fields
-export type SafeUser = Omit<User, "password" | "refreshToken">;
+export type SafeUser = Omit<
+  User,
+  "password" | "refreshToken" | "totpSecret" | "totpBackupCodes"
+>;
 
 // Extended Request with user
 export interface AuthRequest extends Request {
