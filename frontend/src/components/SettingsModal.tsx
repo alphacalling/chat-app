@@ -36,7 +36,6 @@ const SettingsModal = ({
   const { user, refreshUser, updateUser } = useAuth();
   const [showTOTP, setShowTOTP] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
-  const [totpSecret, setTotpSecret] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string>("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [totpToken, setTotpToken] = useState("");
@@ -68,7 +67,6 @@ const SettingsModal = ({
   const handleGenerateTOTP = async () => {
     try {
       const { data } = await totpAPI.generateTOTP();
-      setTotpSecret(data.data);
       setQrCode(data.data.qrCode);
       setBackupCodes(data.data.backupCodes);
     } catch (error) {

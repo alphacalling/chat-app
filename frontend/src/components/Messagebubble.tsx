@@ -42,21 +42,17 @@ interface Message {
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
-  isGroup?: boolean;
   chatId?: string;
   onDelete?: () => void;
   onReply?: (message: Message) => void;
-  onEdit?: (message: Message) => void;
 }
 
 const MessageBubble = ({
   message,
   isOwn,
-  isGroup,
   chatId,
   onDelete,
   onReply,
-  onEdit,
 }: MessageBubbleProps) => {
   const { user: currentUser } = useAuth();
   const [showContextMenu, setShowContextMenu] = useState(false);

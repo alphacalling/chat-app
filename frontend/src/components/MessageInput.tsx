@@ -14,16 +14,9 @@ import {
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
   onSendMedia?: (file: File) => void;
-  replyingTo?: any;
-  onCancelReply?: () => void;
 }
 
-const MessageInput = ({
-  onSendMessage,
-  onSendMedia,
-  replyingTo,
-  onCancelReply,
-}: MessageInputProps) => {
+const MessageInput = ({ onSendMessage, onSendMedia }: MessageInputProps) => {
   const [message, setMessage] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import {
-  Info,
   Phone,
   Video,
   MoreVertical,
@@ -80,6 +79,9 @@ const ChatWindow = ({
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [reactionNotification, setReactionNotification] = useState<
+    string | null
+  >(null);
   const { socket, isConnected, onlineUsers } = useSocketContext();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -211,9 +213,39 @@ const ChatWindow = ({
     };
 
     const handleMessageReaction = ({ messageId, reactions }: any) => {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, reactions } : msg)),
-      );
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === messageId ? { ...msg, reactions } : msg,
+        );
+
+        // Show notification only when someone reacts to the current user's message
+        if (user?.id) {
+          const reactedMessage = updated.find(
+            (m) => m.id === messageId && m.senderId === user.id,
+          );
+          if (
+            reactedMessage &&
+            Array.isArray(reactions) &&
+            reactions.length > 0
+          ) {
+            // Prefer a reaction from someone else (not the current user)
+            const foreignReactions = reactions.filter(
+              (r: any) => r?.user?.id && r.user.id !== user.id,
+            );
+            const lastReaction: any =
+              foreignReactions[foreignReactions.length - 1] ??
+              reactions[reactions.length - 1];
+
+            if (lastReaction?.user?.name && lastReaction?.emoji) {
+              setReactionNotification(
+                `${lastReaction.user.name} reacted ${lastReaction.emoji} to your message`,
+              );
+            }
+          }
+        }
+
+        return updated;
+      });
     };
 
     const handleMessagePinned = ({ messageId, pinnedAt }: any) => {
@@ -258,6 +290,13 @@ const ChatWindow = ({
     };
   }, [socket, selectedChat, user?.id]);
 
+  // Auto-hide reaction notifications after a short delay
+  useEffect(() => {
+    if (!reactionNotification) return;
+    const timeout = setTimeout(() => setReactionNotification(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [reactionNotification]);
+
   const handleSendMessage = async (content: string) => {
     if (!selectedChat || !content.trim()) return;
 
@@ -282,10 +321,6 @@ const ChatWindow = ({
 
   const handleReply = (message: Message) => {
     setReplyingTo(message);
-  };
-
-  const handleEdit = (message: Message) => {
-    // Edit is handled in MessageBubble component
   };
 
   const handleSendMedia = async (file: File) => {
@@ -558,11 +593,9 @@ const ChatWindow = ({
                     <MessageBubble
                       message={message}
                       isOwn={isOwn}
-                      isGroup={selectedChat.isGroupChat}
                       chatId={selectedChat.id}
                       onDelete={() => handleDeleteMessage(message.id)}
                       onReply={handleReply}
-                      onEdit={handleEdit}
                     />
                   </div>
                 </div>
@@ -572,6 +605,16 @@ const ChatWindow = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
+      {/* Reaction notification */}
+      {reactionNotification && (
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-28 z-30">
+          <div className="pointer-events-auto bg-slate-900 text-white text-sm px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4">
+            <span className="text-base">💬</span>
+            <span className="font-medium">{reactionNotification}</span>
+          </div>
+        </div>
+      )}
 
       {/* Reply Preview */}
       {replyingTo && (
@@ -601,8 +644,6 @@ const ChatWindow = ({
         <MessageInput
           onSendMessage={handleSendMessage}
           onSendMedia={handleSendMedia}
-          replyingTo={replyingTo}
-          onCancelReply={() => setReplyingTo(null)}
         />
       </div>
 

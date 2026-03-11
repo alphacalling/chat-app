@@ -181,7 +181,6 @@ const MessageContextMenu = ({
         {/* Menu Items */}
         {menuItems.map((item, index) => {
           const Icon = item.icon;
-          const isLast = index === menuItems.length - 1;
           const isBeforeDanger = !item.danger && menuItems[index + 1]?.danger;
 
           return (

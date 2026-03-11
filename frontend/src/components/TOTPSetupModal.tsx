@@ -27,7 +27,6 @@ interface TOTPSetupModalProps {
 
 const TOTPSetupModal = ({ open, onClose, onComplete }: TOTPSetupModalProps) => {
   const [step, setStep] = useState<"intro" | "qr" | "verify">("intro");
-  const [totpSecret, setTotpSecret] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string>("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [totpToken, setTotpToken] = useState("");
@@ -38,7 +37,6 @@ const TOTPSetupModal = ({ open, onClose, onComplete }: TOTPSetupModalProps) => {
     try {
       setLoading(true);
       const { data } = await totpAPI.generateTOTP();
-      setTotpSecret(data.data);
       setQrCode(data.data.qrCode);
       setBackupCodes(data.data.backupCodes);
       setStep("qr");

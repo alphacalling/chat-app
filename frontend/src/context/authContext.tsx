@@ -10,6 +10,7 @@ interface User {
   about?: string;
   gender?: string;
   isOnline?: boolean;
+  totpEnabled?: boolean;
 }
 
 interface AuthContextProps {

@@ -35,7 +35,7 @@ const JoinInvitePage = () => {
     setLoading(true);
     setError("");
     try {
-      const { data } = await inviteAPI.joinViaInvite(inviteCode);
+      await inviteAPI.joinViaInvite(inviteCode);
       navigate("/chat");
       window.location.reload();
     } catch (error: any) {

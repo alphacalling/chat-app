@@ -23,7 +23,6 @@ interface BlockUserButtonProps {
 export const BlockUserButton = ({
   userId,
   userName,
-  userAvatar,
   isBlocked = false,
   onBlockChange,
 }: BlockUserButtonProps) => {
