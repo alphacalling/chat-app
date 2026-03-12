@@ -35,7 +35,8 @@
     "speakeasy": "^2.0.0",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "cloudinary": "^2.9.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

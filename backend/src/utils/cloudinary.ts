@@ -1,4 +1,8 @@
-import { v2 as cloudinary } from "cloudinary";
+import {
+  v2 as cloudinary,
+  UploadApiErrorResponse,
+  UploadApiResponse,
+} from "cloudinary";
 import { Readable } from "stream";
 
 // Configure Cloudinary from environment variables
@@ -39,7 +43,10 @@ export async function uploadToCloudinary(
         resource_type,
         public_id,
       },
-      (error, result) => {
+      (
+        error: UploadApiErrorResponse | undefined,
+        result: UploadApiResponse | undefined
+      ) => {
         if (error || !result) {
           return reject(error || new Error("Cloudinary upload failed"));
         }
