@@ -1,18 +1,35 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import { execSync } from "node:child_process";
+import { logger } from "../utils/logger.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// PostgreSQL connection pool
+// Connection Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: parseInt(process.env.DB_POOL_MAX || "20"),
+  min: parseInt(process.env.DB_POOL_MIN || "5"),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  allowExitOnIdle: false,
 });
 
+// Log pool errors instead of crashing
+pool.on("error", (err) => {
+  logger.error({ err }, "Unexpected database pool error");
+});
+
+pool.on("connect", () => {
+  logger.debug("New pool connection established");
+});
+
+// Prisma Client
 const adapter = new PrismaPg(pool);
 
-// Global variable declare
+// Singleton pattern to prevent multiple instances in development (hot reload)
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma =
@@ -21,7 +38,7 @@ export const prisma =
     adapter,
     log:
       process.env.NODE_ENV === "development"
-        ? ["error", "warn"]  //"query", 
+        ? ["error", "warn"]
         : ["error"],
   });
 
@@ -29,20 +46,55 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
+// Database Operations
+
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    console.log("✅ Database connected successfully");
+    // Verify the connection actually works
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info("Database connected successfully");
   } catch (error) {
-    console.error("Database connection failed:", error);
+    logger.fatal({ err: error }, "Database connection failed");
     process.exit(1);
   }
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  await prisma.$disconnect();
-  console.log("📤 Database disconnected");
+  try {
+    await prisma.$disconnect();
+    await pool.end();
+    logger.info("Database disconnected and pool closed");
+  } catch (error) {
+    logger.error({ err: error }, "Error during database disconnect");
+  }
 }
+
+export async function runMigrations(): Promise<void> {
+  try {
+    logger.info("Applying database migrations...");
+    execSync("npx prisma migrate deploy", {
+      stdio: "inherit",
+      env: process.env,
+    });
+    logger.info("Database migrations applied successfully");
+  } catch (error) {
+    logger.fatal({ err: error }, "Database migration failed");
+    throw error;
+  }
+}
+
+// Health check query — used by /health endpoint
+export async function checkDatabaseHealth(): Promise<boolean> {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { pool };
 
 
 // import { PrismaClient } from "@prisma/client";

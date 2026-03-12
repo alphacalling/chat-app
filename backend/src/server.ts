@@ -2,12 +2,23 @@ import express from "express";
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import { join } from "path";
-import { fileURLToPath } from "url";
 import { mkdirSync } from "fs";
+
+dotenv.config();
+
+import { logger } from "./utils/logger.js";
+import { validateEnvironment } from "./configs/environment.js";
+import {
+  connectDatabase,
+  disconnectDatabase,
+  runMigrations,
+  checkDatabaseHealth,
+} from "./configs/database.js";
+import { setupSecurity } from "./middlewares/security.js";
+import { setupLogging } from "./middlewares/logging.js";
+
 import routes from "./routes/auth.route.js";
 import chatRoutes from "./routes/chat.route.js";
 import messageRoutes from "./routes/message.route.js";
@@ -15,29 +26,30 @@ import totpRoutes from "./routes/totp.route.js";
 import blockRoutes from "./routes/block.route.js";
 import inviteRoutes from "./routes/invite.route.js";
 import statusRoutes from "./routes/status.route.js";
+
 import { setupSocket } from "./socket/socket.js";
 import { setIO } from "./utils/socket.js";
 
-import { connectDatabase, disconnectDatabase } from "./configs/database.js";
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
   SocketData,
 } from "./types/type.js";
+
 import { getUploadsDir } from "./utils/paths.js";
 
-// Get __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = __filename.substring(0, __filename.lastIndexOf("/"));
+// Validate environment before doing anything
+validateEnvironment();
 
-// Load environment variables
-dotenv.config();
+// Constants
+const PORT = parseInt(process.env.PORT || "5000", 10);
+const CLIENT_URL = process.env.CLIENT_URL!;
 
 // Initialize Express
 const app: Express = express();
 const httpServer = createServer(app);
 
-// Initialize Socket.IO with TypeScript types
+//Initialize Socket.IO
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -45,71 +57,55 @@ const io = new Server<
   SocketData
 >(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: CLIENT_URL,
     methods: ["GET", "POST"],
     credentials: true,
   },
-  // Connection options
   pingTimeout: 60000,
   pingInterval: 25000,
 });
 
-// Middleware
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  }),
-);
-app.use(cookieParser()); // Parse cookies
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+// ─── Middlewares Setup ───
 
-// Determine uploads directory path using shared utility
-// This ensures consistency with fileUpload.ts
+// 1. Logging
+setupLogging(app);
+
+// 2. Security
+setupSecurity(app);
+
+// 3. Body parsing
+app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 4. Static file serving
 const uploadsPath = getUploadsDir();
-// Ensure directory exists
 mkdirSync(uploadsPath, { recursive: true });
-console.log("📁 Static file serving directory:", uploadsPath);
+logger.info({ path: uploadsPath }, "Static file serving directory");
 
 app.use(
   "/uploads",
-  (req, res, next) => {
-    console.log("📁 File request:", req.path);
-    next();
-  },
   express.static(uploadsPath, {
-    setHeaders: (res, path) => {
+    maxAge: "1y",
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'"
+      );
       res.setHeader(
         "Access-Control-Allow-Origin",
-        process.env.CLIENT_URL || "http://localhost:5173",
+        CLIENT_URL
       );
       res.setHeader("Access-Control-Allow-Credentials", "true");
-      res.setHeader("Cache-Control", "public, max-age=31536000");
-      // proper content type for downloads
-      if (path.endsWith(".pdf")) {
-        res.setHeader("Content-Type", "application/pdf");
-      } else if (path.endsWith(".doc") || path.endsWith(".docx")) {
-        res.setHeader("Content-Type", "application/msword");
-      } else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) {
-        res.setHeader("Content-Type", "image/jpeg");
-      } else if (path.endsWith(".png")) {
-        res.setHeader("Content-Type", "image/png");
-      } else if (path.endsWith(".gif")) {
-        res.setHeader("Content-Type", "image/gif");
-      }
     },
-  }),
+  })
 );
 
-// Request logging middleware
-app.use("/api", (req: Request, res: Response, next: NextFunction) => {
-  console.log(`📥 ${req.method} ${req.originalUrl} - ${req.path}`);
-  next();
-});
-
-// API Routes
-app.use("/api", routes); //api/user/:userId
+// ─── API Routes ───
+app.use("/api", routes);
 app.use("/api/message", messageRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/totp", totpRoutes);
@@ -117,85 +113,124 @@ app.use("/api/block", blockRoutes);
 app.use("/api/invite", inviteRoutes);
 app.use("/api/status", statusRoutes);
 
-// Health check route
-app.get("/health", (req: Request, res: Response) => {
-  res.json({
-    status: "OK",
+// ─── Health Check ────
+app.get("/health", async (req: Request, res: Response) => {
+  const dbHealthy = await checkDatabaseHealth();
+
+  const status = dbHealthy ? "healthy" : "unhealthy";
+  const statusCode = dbHealthy ? 200 : 503;
+
+  res.status(statusCode).json({
+    status,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    database: dbHealthy ? "connected" : "disconnected",
+    version: process.env.npm_package_version || "unknown",
   });
 });
 
-// API routes
+// ─── Info Route ────
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chit-Chat Application API" });
 });
 
-// Test route to verify routing works
-app.get("/api/test-user-route", (req: Request, res: Response) => {
-  res.json({ success: true, message: "Test route works!" });
-});
-
-// 404 Handler (skip for static file requests)
+// ─── 404 Handler ────
 app.use((req: Request, res: Response) => {
-  // If it's a static file request that wasn't found, return 404 without JSON
   if (req.path.startsWith("/uploads")) {
     res.status(404).send("File not found");
     return;
   }
-  // For API routes, return JSON
   res.status(404).json({
     success: false,
     message: "Route not found",
   });
 });
 
-// Error Handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error("Error:", err);
+// ─── Error Handler ──────
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  logger.error(
+    {
+      err,
+      method: req.method,
+      url: req.url,
+      body: req.body,
+    },
+    "Unhandled error"
+  );
+
+  // Don't leak error details in production
+  const message =
+    process.env.NODE_ENV === "development"
+      ? err.message
+      : "Internal server error";
+
   res.status(500).json({
     success: false,
-    message: "Internal server error",
+    message,
   });
 });
 
-// Socket.IO handlers
+// ─── Socket.IO Setup ────
 setupSocket(io);
-setIO(io); // Store io instance for use in controllers
+setIO(io);
 
-// Start server
-const PORT = process.env.PORT || 5000;
-
+// ─── Server Startup ────
 async function startServer(): Promise<void> {
   try {
-    // database Connection
+    // 1. Run migrations
+    await runMigrations();
+
+    // 2. Connect to database
     await connectDatabase();
 
-    // start HTTP server
+    // 3. Start HTTP server
     httpServer.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`🔌 WebSocket ready on ws://localhost:${PORT}`);
+      logger.info({ port: PORT }, "Server running");
+      logger.info({ port: PORT }, "WebSocket ready");
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    logger.fatal({ err: error }, "Failed to start server");
     process.exit(1);
   }
 }
 
-// shutdown handling
-process.on("SIGTERM", async () => {
-  console.log("SIGTERM received. Shutting down...");
+// ─── Graceful Shutdown ────
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info({ signal }, "Shutdown signal received");
+
+  // 1. Stop accepting new connections
+  httpServer.close(() => {
+    logger.info("HTTP server closed");
+  });
+
+  // 2. Close all socket connections
+  io.close(() => {
+    logger.info("Socket.IO closed");
+  });
+
+  // 3. Disconnect database and close pool
   await disconnectDatabase();
+
+  logger.info("Graceful shutdown complete");
   process.exit(0);
+}
+
+// Handle shutdown signals
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Handle uncaught errors (last resort)
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "Uncaught exception — shutting down");
+  process.exit(1);
 });
 
-process.on("SIGINT", async () => {
-  console.log("SIGINT received. Shutting down...");
-  await disconnectDatabase();
-  process.exit(0);
+process.on("unhandledRejection", (reason) => {
+  logger.fatal({ err: reason }, "Unhandled promise rejection — shutting down");
+  process.exit(1);
 });
 
-// Start the server
+// ─── Start ─────
 startServer();
 
 export { app, io };

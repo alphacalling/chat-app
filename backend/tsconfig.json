@@ -8,7 +8,6 @@
     /* Module system */
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
 
     /* Paths */
