@@ -1,0 +1,37 @@
+# Dependencies (keep lockfile for reproducible installs)
+node_modules
+
+# Build output
+dist
+*.tsbuildinfo
+
+# Dev / local
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.DS_Store
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Test / coverage
+coverage
+*.test.ts
+*.spec.ts
+
+# Git
+.git
+.gitignore
+
+# Docker (avoid recursive copy)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Docs (optional, keep repo smaller)
+*.md
+!README.md

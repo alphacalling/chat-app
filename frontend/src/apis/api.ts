@@ -1,8 +1,12 @@
 import axios from "axios";
-import { API_BASE_URL } from "../configs/env";
+// import { API_BASE_URL } from "../configs/env";
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  // for development localhost
+  // baseURL: `${API_BASE_URL}/api`,
+  
+  // for production nginx proxy
+  baseURL: `/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState, useCallback } from "react";
 import io, { Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
-import { API_BASE_URL } from "../configs/env";
+// import { API_BASE_URL } from "../configs/env";
 
 interface SocketContextProps {
   socket: Socket | null;
@@ -54,7 +54,11 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     console.log("🔌 Connecting socket for user:", user.id);
 
     // Access token is in httpOnly cookie; send credentials so backend can verify
-    const newSocket = io(API_BASE_URL, {
+    //for development localhost
+    // const newSocket = io(API_BASE_URL, {
+
+    //for production nginx proxy
+      const newSocket = io(window.location.origin, {
       withCredentials: true,
     });
 
