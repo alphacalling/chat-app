@@ -90,10 +90,10 @@ export function setupSecurity(app: Express): void {
   });
 
   // Apply rate limiters
-  app.use("/api", apiLimiter);
-  app.use("/api/login", authLimiter);
-  app.use("/api/register", authLimiter);
-  app.use("/api/signup", authLimiter);
+  // app.use("/api", apiLimiter);
+  // app.use("/api/login", authLimiter);
+  // app.use("/api/register", authLimiter);
+  // app.use("/api/signup", authLimiter);
   app.use("/api/message", uploadLimiter);
 
   logger.info("Security middleware configured");
