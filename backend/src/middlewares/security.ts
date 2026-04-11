@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import type { Express } from "express";
 import { logger } from "../utils/logger.js";
 
+//* auth limiter 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -19,6 +20,7 @@ export const authLimiter = rateLimit({
   },
 });
 
+//* message limiter 
 export const messageLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,
@@ -30,6 +32,7 @@ export const messageLimiter = rateLimit({
   },
 });
 
+//* upload limiter 
 export const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
@@ -41,6 +44,7 @@ export const uploadLimiter = rateLimit({
   },
 });
 
+//* totp limiter 
 export const totpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -56,6 +60,7 @@ export const totpLimiter = rateLimit({
   },
 });
 
+//* status limiter 
 export const statusLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
@@ -81,7 +86,7 @@ export function setupSecurity(app: Express): void {
       frameguard: { action: "deny" },
       noSniff: true,
       xssFilter: true,
-    })
+    }),
   );
 
   app.use(
@@ -91,7 +96,7 @@ export function setupSecurity(app: Express): void {
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
       maxAge: 86400,
-    })
+    }),
   );
 
   logger.info("Security middleware configured");

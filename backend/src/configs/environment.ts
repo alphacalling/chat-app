@@ -1,22 +1,22 @@
 import { logger } from "../utils/logger.js";
 
 const requiredVars = [
-    "DATABASE_URL",
-    "CLIENT_URL",
-    "JWT_ACCESS_SECRET",
-    "JWT_REFRESH_SECRET",
-    "ENCRYPTION_KEY",
-  ] as const;
-  
-  const optionalVars: Record<string, string> = {
-    PORT: "5000",
-    NODE_ENV: "development",
-    DB_POOL_MAX: "20",
-    DB_POOL_MIN: "5",
-    LOG_LEVEL: "info",
-  };
+  "DATABASE_URL",
+  "CLIENT_URL",
+  "JWT_ACCESS_SECRET",
+  "JWT_REFRESH_SECRET",
+  "ENCRYPTION_KEY",
+] as const;
 
-  export function validateEnvironment(): void {
+const optionalVars: Record<string, string> = {
+  PORT: "5000",
+  NODE_ENV: "development",
+  DB_POOL_MAX: "20",
+  DB_POOL_MIN: "5",
+  LOG_LEVEL: "info",
+};
+
+export function validateEnvironment(): void {
   const missing: string[] = [];
 
   for (const varName of requiredVars) {
@@ -33,8 +33,9 @@ const requiredVars = [
 
   for (const [key, defaultValue] of Object.entries(optionalVars)) {
     if (!process.env[key]) {
-      logger.warn({ variable: key, default: defaultValue },
-        "Environment variable not set, using default"
+      logger.warn(
+        { variable: key, default: defaultValue },
+        "Environment variable not set, using default",
       );
     }
   }

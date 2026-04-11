@@ -16,7 +16,7 @@ export function setupLogging(app: Express): void {
       customLogLevel: (
         _req: Request,
         res: Response,
-        error: Error | undefined
+        error: Error | undefined,
       ) => {
         if (res.statusCode >= 500 || error) return "error";
         if (res.statusCode >= 400) return "warn";
@@ -37,7 +37,7 @@ export function setupLogging(app: Express): void {
           statusCode: res.statusCode,
         }),
       },
-    })
+    }),
   );
 
   logger.info("Request logging configured");

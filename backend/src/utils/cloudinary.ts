@@ -5,7 +5,7 @@ import {
 } from "cloudinary";
 import { Readable } from "stream";
 
-// Configure Cloudinary from environment variables
+// environment variables
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -25,7 +25,7 @@ export async function uploadToCloudinary(
     folder?: string;
     resource_type?: "image" | "video" | "raw" | "auto";
     public_id?: string;
-  } = {}
+  } = {},
 ): Promise<{
   url: string;
   secure_url: string;
@@ -34,7 +34,11 @@ export async function uploadToCloudinary(
   format?: string;
   resource_type: string;
 }> {
-  const { folder = "chit-chat-uploads", resource_type = "auto", public_id } = options;
+  const {
+    folder = "chit-chat-uploads",
+    resource_type = "auto",
+    public_id,
+  } = options;
 
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -45,7 +49,7 @@ export async function uploadToCloudinary(
       },
       (
         error: UploadApiErrorResponse | undefined,
-        result: UploadApiResponse | undefined
+        result: UploadApiResponse | undefined,
       ) => {
         if (error || !result) {
           return reject(error || new Error("Cloudinary upload failed"));
@@ -58,10 +62,9 @@ export async function uploadToCloudinary(
           format: result.format,
           resource_type: result.resource_type,
         });
-      }
+      },
     );
 
     bufferToStream(buffer).pipe(uploadStream);
   });
 }
-

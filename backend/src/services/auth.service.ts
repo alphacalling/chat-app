@@ -11,11 +11,10 @@ import type {
 } from "../types/type.js";
 
 export class AuthService {
-  // Register new user
+  //* register user
   async register(
-    data: RegisterDTO
+    data: RegisterDTO,
   ): Promise<{ user: SafeUser; tokens: AuthTokens }> {
-    // Check if phone already exists
     const existingUser = await prisma.user.findUnique({
       where: { phone: data.phone },
     });
@@ -24,7 +23,6 @@ export class AuthService {
       throw new Error("Phone number already registered");
     }
 
-    // Check if email already exists (if provided)
     if (data.email) {
       const emailExists = await prisma.user.findUnique({
         where: { email: data.email },
@@ -65,9 +63,10 @@ export class AuthService {
     return { user: safeUser, tokens };
   }
 
-  // Login user
-  async login(data: LoginDTO & { totpToken?: string }): Promise<{ user: SafeUser; tokens: AuthTokens; requiresTOTP?: boolean }> {
-    // Find user by phone
+  //* Login user
+  async login(
+    data: LoginDTO & { totpToken?: string },
+  ): Promise<{ user: SafeUser; tokens: AuthTokens; requiresTOTP?: boolean }> {
     const user = await prisma.user.findUnique({
       where: { phone: data.phone },
     });
@@ -86,8 +85,13 @@ export class AuthService {
     // Check if TOTP is enabled
     if (user.totpEnabled) {
       if (!data.totpToken) {
-        // Return requires TOTP flag
-        const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } = user;
+        const {
+          password,
+          refreshToken,
+          totpSecret,
+          totpBackupCodes,
+          ...safeUser
+        } = user;
         return { user: safeUser, tokens: {} as AuthTokens, requiresTOTP: true };
       }
 
@@ -105,7 +109,9 @@ export class AuthService {
           : user.totpBackupCodes
         : null;
 
-      let totpValid = totpSecret ? verifyTOTP(data.totpToken, totpSecret) : false;
+      let totpValid = totpSecret
+        ? verifyTOTP(data.totpToken, totpSecret)
+        : false;
 
       if (!totpValid && backupCodes) {
         const result = verifyBackupCode(data.totpToken, backupCodes);
@@ -138,13 +144,8 @@ export class AuthService {
       },
     });
 
-    const {
-      password,
-      refreshToken,
-      totpSecret,
-      totpBackupCodes,
-      ...safeUser
-    } = user;
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
+      user;
 
     return { user: safeUser, tokens };
   }
@@ -191,7 +192,7 @@ export class AuthService {
     return tokens;
   }
 
-  // Logout user
+  //* Logout user
   async logout(userId: string): Promise<void> {
     await prisma.user.update({
       where: { id: userId },
@@ -203,7 +204,7 @@ export class AuthService {
     });
   }
 
-  // Get user profile
+  //* Get user profile
   async getProfile(userId: string): Promise<SafeUser> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -213,16 +214,12 @@ export class AuthService {
       throw new Error("User not found");
     }
 
-    const {
-      password,
-      refreshToken,
-      totpSecret,
-      totpBackupCodes,
-      ...safeUser
-    } = user;
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
+      user;
     return safeUser;
   }
 
+  //* getUserProfile
   async getUserProfile(userId: string, requesterId: string): Promise<SafeUser> {
     if (!userId || userId.trim() === "") {
       throw new Error("Invalid user ID");
@@ -267,6 +264,7 @@ export class AuthService {
     return userWithGender as SafeUser;
   }
 
+  //* forgotPassword
   async forgotPassword(phone: string): Promise<{ totpEnabled: boolean }> {
     const user = await prisma.user.findUnique({
       where: { phone },
@@ -274,18 +272,18 @@ export class AuthService {
 
     if (!user || !user.totpEnabled || !user.totpSecret) {
       throw new Error(
-        "Password reset is not available for this account. Ensure Two-Factor Authentication is enabled."
+        "Password reset is not available for this account. Ensure Two-Factor Authentication is enabled.",
       );
     }
 
     return { totpEnabled: true };
   }
 
-  // Reset password — step 2: verify TOTP + set new password
+  //* Reset password — step 2: verify TOTP + set new password
   async resetPassword(
     phone: string,
     totpToken: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { phone },
@@ -342,10 +340,16 @@ export class AuthService {
     });
   }
 
-  // Update profile
+  //* Update profile
   async updateProfile(
     userId: string,
-    data: { name?: string; about?: string; avatar?: string; gender?: string; email?: string }
+    data: {
+      name?: string;
+      about?: string;
+      avatar?: string;
+      gender?: string;
+      email?: string;
+    },
   ): Promise<SafeUser> {
     if (data.email) {
       const existingUser = await prisma.user.findFirst({
@@ -365,13 +369,8 @@ export class AuthService {
       data,
     });
 
-    const {
-      password,
-      refreshToken,
-      totpSecret,
-      totpBackupCodes,
-      ...safeUser
-    } = user;
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
+      user;
     return safeUser;
   }
 }

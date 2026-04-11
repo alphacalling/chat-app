@@ -8,9 +8,7 @@ import { prisma } from "../configs/database.js";
 import { onlineUsers } from "../socket/socket.js";
 
 export class StatusController {
-  /**
-   * Create a status
-   */
+  //  * Create a status
   async createStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -24,7 +22,7 @@ export class StatusController {
       const { content, type = "TEXT" } = req.body;
       let mediaUrl: string | undefined;
 
-      // Handle file upload if present (Cloudinary)
+      // Handle file upload (Cloudinary)
       if (req.file && req.file.buffer) {
         try {
           const uploadResult = await uploadToCloudinary(req.file.buffer, {
@@ -47,10 +45,10 @@ export class StatusController {
         req.user.id,
         content,
         mediaUrl,
-        type
+        type,
       );
 
-      // Emit new status only to contacts (users sharing a chat)
+      // status notification to users
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io) {
@@ -78,9 +76,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * Get all statuses from contacts
-   */
+  //* Get all statuses from contacts
   async getStatuses(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -93,7 +89,7 @@ export class StatusController {
 
       const statuses = await statusService.getStatuses(req.user.id);
 
-      // Convert relative media URLs and user avatars to full URLs
+      // Converting relative media URLs and user avatars to full URLs
       const baseUrl = req.protocol + "://" + req.get("host");
       const statusesWithFullUrls = statuses.map((userStatus) => ({
         ...userStatus,
@@ -104,7 +100,11 @@ export class StatusController {
             : userStatus.user?.avatar,
         },
         statuses: userStatus.statuses.map((status) => {
-          if (status.mediaUrl && typeof status.mediaUrl === "string" && !status.mediaUrl.startsWith("http")) {
+          if (
+            status.mediaUrl &&
+            typeof status.mediaUrl === "string" &&
+            !status.mediaUrl.startsWith("http")
+          ) {
             return {
               ...status,
               mediaUrl: getFullFileUrl(status.mediaUrl, baseUrl),
@@ -128,9 +128,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * Get user's own statuses
-   */
+  //* Get user's own statuses
   async getMyStatuses(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -143,10 +141,14 @@ export class StatusController {
 
       const statuses = await statusService.getMyStatuses(req.user.id);
 
-      // Convert relative media URLs to full URLs
+      // Converting relative media URLs to full URLs
       const baseUrl = req.protocol + "://" + req.get("host");
       const statusesWithFullUrls = statuses.map((status) => {
-        if (status.mediaUrl && typeof status.mediaUrl === "string" && !status.mediaUrl.startsWith("http")) {
+        if (
+          status.mediaUrl &&
+          typeof status.mediaUrl === "string" &&
+          !status.mediaUrl.startsWith("http")
+        ) {
           return {
             ...status,
             mediaUrl: getFullFileUrl(status.mediaUrl, baseUrl),
@@ -169,9 +171,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * View a status
-   */
+  //* View a status
   async viewStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { statusId } = req.params;
@@ -214,9 +214,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * Add reaction to status
-   */
+  //* Add reaction to status
   async addReaction(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { statusId } = req.params;
@@ -241,7 +239,7 @@ export class StatusController {
       const reaction = await statusService.addReaction(
         statusId,
         req.user.id,
-        emoji
+        emoji,
       );
 
       // Emit reaction only to the status owner
@@ -272,9 +270,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * Remove reaction from status
-   */
+  //* Remove reaction from status
   async removeReaction(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { statusId } = req.params;
@@ -287,9 +283,12 @@ export class StatusController {
         return;
       }
 
-      const removedStatus = await statusService.removeReaction(statusId, req.user.id);
+      const removedStatus = await statusService.removeReaction(
+        statusId,
+        req.user.id,
+      );
 
-      // Emit reaction removal only to the status owner
+      // Emit reaction
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io && removedStatus) {
@@ -316,9 +315,7 @@ export class StatusController {
     }
   }
 
-  /**
-   * Delete a status
-   */
+  //* Delete a status
   async deleteStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { statusId } = req.params;

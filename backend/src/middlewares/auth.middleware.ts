@@ -6,13 +6,12 @@ import { prisma } from "../configs/database.js";
 export async function authMiddleware(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
-    // Get token from httpOnly cookie
     let token = req.cookies?.accessToken;
 
-    // Fallback to Authorization header if cookie not found
+    // Fallback to Authorization header
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {

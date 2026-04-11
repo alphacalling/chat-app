@@ -1,9 +1,7 @@
 import { prisma } from "../configs/database.js";
 
 export class BlockService {
-  /**
-   * Block a user
-   */
+  //  * Block a user
   async blockUser(blockerId: string, blockedId: string): Promise<void> {
     if (blockerId === blockedId) {
       throw new Error("Cannot block yourself");
@@ -31,9 +29,7 @@ export class BlockService {
     });
   }
 
-  /**
-   * Unblock a user
-   */
+  //  * Unblock a user
   async unblockUser(blockerId: string, blockedId: string): Promise<void> {
     await prisma.blockedUser.deleteMany({
       where: {
@@ -43,9 +39,7 @@ export class BlockService {
     });
   }
 
-  /**
-   * Get blocked users list
-   */
+  //  * Get blocked users list
   async getBlockedUsers(userId: string) {
     const blocked = await prisma.blockedUser.findMany({
       where: { blockerId: userId },
@@ -65,9 +59,7 @@ export class BlockService {
     return blocked.map((b) => b.blocked);
   }
 
-  /**
-   * Check if user is blocked
-   */
+  //  * Check if user is blocked
   async isBlocked(blockerId: string, blockedId: string): Promise<boolean> {
     const blocked = await prisma.blockedUser.findUnique({
       where: {

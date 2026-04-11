@@ -8,7 +8,10 @@ export interface TOTPConfig {
   backupCodes: string[];
 }
 
-export function generateTOTPSecret(userEmail: string, appName: string = "WhatsApp Clone"): TOTPConfig {
+export function generateTOTPSecret(
+  userEmail: string,
+  appName: string = "Chit-Chat App",
+): TOTPConfig {
   const secret = speakeasy.generateSecret({
     name: `${appName} (${userEmail})`,
     issuer: appName,
@@ -28,9 +31,7 @@ export function generateTOTPSecret(userEmail: string, appName: string = "WhatsAp
   };
 }
 
-/**
- * Generate QR code data URL
- */
+//  * Generate QR code data URL
 export async function generateQRCode(otpauthUrl: string): Promise<string> {
   try {
     return await QRCode.toDataURL(otpauthUrl);
@@ -39,9 +40,7 @@ export async function generateQRCode(otpauthUrl: string): Promise<string> {
   }
 }
 
-/**
- * Verify TOTP token
- */
+//  * Verify TOTP token
 export function verifyTOTP(token: string, secret: string): boolean {
   return speakeasy.totp.verify({
     secret,
@@ -51,10 +50,11 @@ export function verifyTOTP(token: string, secret: string): boolean {
   });
 }
 
-/**
- * Verify backup code and return remaining codes (null if not valid).
- */
-export function verifyBackupCode(code: string, backupCodes: string): { valid: boolean; remainingCodes: string } {
+//  * Verify backup code and return remaining codes (null if not valid).
+export function verifyBackupCode(
+  code: string,
+  backupCodes: string,
+): { valid: boolean; remainingCodes: string } {
   const codes = backupCodes.split(",");
   const index = codes.indexOf(code);
   if (index === -1) {

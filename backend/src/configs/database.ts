@@ -17,7 +17,7 @@ const pool = new Pool({
   allowExitOnIdle: false,
 });
 
-// Log pool errors instead of crashing
+// Log pool errors
 pool.on("error", (err) => {
   logger.error({ err }, "Unexpected database pool error");
 });
@@ -36,22 +36,17 @@ export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["error", "warn"]
-        : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-// Database Operations
-
+//! Database Operations
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    // Verify the connection actually works
     await prisma.$queryRaw`SELECT 1`;
     logger.info("Database connected successfully");
   } catch (error) {
@@ -60,6 +55,7 @@ export async function connectDatabase(): Promise<void> {
   }
 }
 
+//* disconnect db
 export async function disconnectDatabase(): Promise<void> {
   try {
     await prisma.$disconnect();
@@ -70,6 +66,7 @@ export async function disconnectDatabase(): Promise<void> {
   }
 }
 
+//* db migration
 export async function runMigrations(): Promise<void> {
   try {
     logger.info("Applying database migrations...");
@@ -84,7 +81,7 @@ export async function runMigrations(): Promise<void> {
   }
 }
 
-// Health check query — used by /health endpoint
+//* Health check db
 export async function checkDatabaseHealth(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -95,7 +92,6 @@ export async function checkDatabaseHealth(): Promise<boolean> {
 }
 
 export { pool };
-
 
 // import { PrismaClient } from "@prisma/client";
 // import { PrismaPg } from "@prisma/adapter-pg";

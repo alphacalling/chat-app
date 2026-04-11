@@ -8,9 +8,7 @@ import {
 import { encrypt, decrypt, isEncrypted } from "../utils/encryption.js";
 
 export class TOTPService {
-  /**
-   * Enable TOTP for a user
-   */
+  //* Enable TOTP for a user
   async enableTOTP(
     userId: string,
   ): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
@@ -47,9 +45,7 @@ export class TOTPService {
     };
   }
 
-  /**
-   * Verify and enable TOTP (final step)
-   */
+  //* Verify and enable TOTP (final step)
   async verifyAndEnableTOTP(userId: string, token: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -94,6 +90,7 @@ export class TOTPService {
     });
   }
 
+  //* disableTOTP
   async disableTOTP(userId: string, token: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -136,6 +133,7 @@ export class TOTPService {
     });
   }
 
+  //* verifyTOTPLogin
   async verifyTOTPLogin(userId: string, token: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { id: userId },

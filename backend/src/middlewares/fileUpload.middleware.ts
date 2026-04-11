@@ -51,6 +51,6 @@ export const fileUploadMiddleware = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 20 * 1024 * 1024, // 20 MB max per file
+    fileSize: 20 * 1024 * 1024,
   },
 }).single("file");

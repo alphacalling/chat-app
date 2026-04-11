@@ -6,19 +6,19 @@ const router = Router();
 
 // Protected routes
 router.post("/create/:chatId", authMiddleware, (req, res) =>
-  inviteController.createInviteLink(req, res)
+  inviteController.createInviteLink(req, res),
 );
 
 router.get("/list/:chatId", authMiddleware, (req, res) =>
-  inviteController.getInviteLinks(req, res)
+  inviteController.getInviteLinks(req, res),
 );
 
 router.post("/join", authMiddleware, (req, res) =>
-  inviteController.joinViaInviteLink(req, res)
+  inviteController.joinViaInviteLink(req, res),
 );
 
 router.delete("/revoke/:linkId", authMiddleware, (req, res) =>
-  inviteController.revokeInviteLink(req, res)
+  inviteController.revokeInviteLink(req, res),
 );
 
 export default router;

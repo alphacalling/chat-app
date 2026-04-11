@@ -51,7 +51,7 @@ export interface ClientToServerEvents {
   "user:connect": (userId: string) => void;
   "message:send": (
     data: ISendMessage,
-    callback: (response: IMessageResponse) => void
+    callback: (response: IMessageResponse) => void,
   ) => void;
   "message:delivered": (messageId: string) => void;
   "message:read": (data: { messageId: string; chatId: string }) => void;

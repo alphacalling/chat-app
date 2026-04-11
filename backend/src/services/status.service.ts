@@ -1,16 +1,13 @@
 import { prisma } from "../configs/database.js";
 
 export class StatusService {
-  /**
-   * Create a status update
-   */
+  //* Create a status update
   async createStatus(
     userId: string,
     content?: string,
     mediaUrl?: string,
-    type: "TEXT" | "IMAGE" | "VIDEO" = "TEXT"
+    type: "TEXT" | "IMAGE" | "VIDEO" = "TEXT",
   ) {
-    // Status expires after 24 hours
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -58,11 +55,8 @@ export class StatusService {
     return status;
   }
 
-  /**
-   * Get all statuses from contacts (users you chat with)
-   */
+  //* Get all statuses from contacts (users you chat with)
   async getStatuses(userId: string) {
-    // Get all users the current user has chats with
     const userChats = await prisma.chatParticipant.findMany({
       where: { userId },
       select: { chatId: true },
@@ -120,9 +114,7 @@ export class StatusService {
     }));
   }
 
-  /**
-   * Get user's own statuses
-   */
+  //* Get user's own statuses
   async getMyStatuses(userId: string) {
     const statuses = await prisma.status.findMany({
       where: {
@@ -166,9 +158,7 @@ export class StatusService {
     return statuses;
   }
 
-  /**
-   * Get contact IDs (users sharing a chat with the given user)
-   */
+  //* Get contact IDs (users sharing a chat with the given user)
   async getContactIds(userId: string): Promise<string[]> {
     const userChats = await prisma.chatParticipant.findMany({
       where: { userId },
@@ -187,10 +177,11 @@ export class StatusService {
     return [...new Set(participants.map((p) => p.userId))];
   }
 
-  /**
-   * Check if viewer is a contact of the status owner
-   */
-  private async isContact(statusOwnerId: string, viewerId: string): Promise<boolean> {
+  //* Check if viewer is a contact of the status owner
+  private async isContact(
+    statusOwnerId: string,
+    viewerId: string,
+  ): Promise<boolean> {
     const sharedChat = await prisma.chat.findFirst({
       where: {
         participants: {
@@ -204,9 +195,7 @@ export class StatusService {
     return !!sharedChat;
   }
 
-  /**
-   * View a status
-   */
+  //* View a status
   async viewStatus(statusId: string, userId: string) {
     const status = await prisma.status.findUnique({
       where: { id: statusId },
@@ -241,9 +230,7 @@ export class StatusService {
     return { ...view, status };
   }
 
-  /**
-   * Add reaction to status
-   */
+  //* Add reaction to status
   async addReaction(statusId: string, userId: string, emoji: string) {
     const status = await prisma.status.findUnique({
       where: { id: statusId },
@@ -287,9 +274,7 @@ export class StatusService {
     return { ...reaction, status };
   }
 
-  /**
-   * Remove reaction from status
-   */
+  //* Remove reaction from status
   async removeReaction(statusId: string, userId: string) {
     const status = await prisma.status.findUnique({
       where: { id: statusId },
@@ -309,9 +294,7 @@ export class StatusService {
     return status;
   }
 
-  /**
-   * Delete a status
-   */
+  //* Delete a status
   async deleteStatus(statusId: string, userId: string) {
     const status = await prisma.status.findUnique({
       where: { id: statusId },

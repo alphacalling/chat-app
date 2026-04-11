@@ -2,21 +2,17 @@ import { prisma } from "../configs/database.js";
 import { randomBytes } from "crypto";
 
 export class InviteService {
-  /**
-   * Generate a unique invite code
-   */
+  //* Generate a unique invite code
   private generateInviteCode(): string {
     return randomBytes(8).toString("hex").toUpperCase();
   }
 
-  /**
-   * Create an invite link for a group
-   */
+  //* Create an invite link for a group
   async createInviteLink(
     chatId: string,
     createdBy: string,
     expiresAt?: Date,
-    maxUses?: number
+    maxUses?: number,
   ) {
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
@@ -47,9 +43,7 @@ export class InviteService {
     return inviteLink;
   }
 
-  /**
-   * Get all invite links for a group
-   */
+  //* Get all invite links for a group
   async getInviteLinks(chatId: string, userId: string) {
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
@@ -73,9 +67,7 @@ export class InviteService {
     return links;
   }
 
-  /**
-   * Join group via invite link
-   */
+  //* Join group via invite link
   async joinViaInviteLink(code: string, userId: string) {
     const inviteLink = await prisma.inviteLink.findUnique({
       where: { code },
@@ -105,7 +97,7 @@ export class InviteService {
     }
 
     const alreadyMember = inviteLink.chat.participants.some(
-      (p) => p.userId === userId
+      (p) => p.userId === userId,
     );
     if (alreadyMember) {
       throw new Error("You are already a member of this group");
@@ -154,9 +146,7 @@ export class InviteService {
     return chat;
   }
 
-  /**
-   * Revoke an invite link
-   */
+  //* Revoke an invite link
   async revokeInviteLink(linkId: string, userId: string) {
     const inviteLink = await prisma.inviteLink.findUnique({
       where: { id: linkId },
@@ -172,7 +162,7 @@ export class InviteService {
     }
 
     const participant = inviteLink.chat.participants.find(
-      (p) => p.userId === userId
+      (p) => p.userId === userId,
     );
     if (!participant || participant.role !== "ADMIN") {
       throw new Error("Only admins can revoke invite links");

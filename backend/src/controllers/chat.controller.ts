@@ -85,10 +85,10 @@ export class ChatController {
       const group = await chatService.createGroupChat(
         req.user.id,
         name,
-        userIds
+        userIds,
       );
 
-      // Notify participants in real-time that group is created
+      // Notify participants
       try {
         const { getIO } = await import("../utils/socket.js");
         const io = getIO();
@@ -146,10 +146,10 @@ export class ChatController {
       const group = await chatService.renameGroupChat(
         chatId,
         req.user.id,
-        name
+        name,
       );
 
-      // Broadcast group update (e.g., name change)
+      // Broadcast group update
       try {
         const { getIO } = await import("../utils/socket.js");
         const io = getIO();
@@ -205,10 +205,10 @@ export class ChatController {
       const group = await chatService.addUserToGroup(
         chatId,
         req.user.id,
-        userId
+        userId,
       );
 
-      // Notify about user being added to group
+      // user being added to group
       try {
         const { getIO } = await import("../utils/socket.js");
         const io = getIO();
@@ -264,10 +264,10 @@ export class ChatController {
       const group = await chatService.removeUserFromGroup(
         chatId,
         req.user.id,
-        userId
+        userId,
       );
 
-      // Notify about user removal from group
+      // user removal from group
       try {
         const { getIO } = await import("../utils/socket.js");
         const io = getIO();
@@ -324,7 +324,7 @@ export class ChatController {
 
       const result = await chatService.leaveGroup(chatId, req.user.id);
 
-      // Notify others that user left the group
+      // user left the group
       try {
         const { getIO } = await import("../utils/socket.js");
         const io = getIO();
@@ -407,7 +407,7 @@ export class ChatController {
       const updated = await chatService.updateGroupDescription(
         chatId,
         req.user.id,
-        description
+        description,
       );
 
       // Broadcast description change
@@ -426,7 +426,7 @@ export class ChatController {
       } catch (socketError) {
         devError(
           "Failed to emit group:updated (description) event:",
-          socketError
+          socketError,
         );
       }
 
@@ -453,7 +453,7 @@ export class ChatController {
       devLog("🔍 updateGroupAvatar called");
       const { chatId } = req.params;
       devLog("🔍 chatId:", chatId);
-      
+
       if (!req.user) {
         devError("❌ No authenticated user");
         res.status(401).json({
@@ -465,7 +465,7 @@ export class ChatController {
 
       const file = (req as any).file;
       devLog("🔍 file:", file ? "exists" : "missing");
-      
+
       if (!file) {
         devError("No file in request");
         devError("Request body:", req.body);
@@ -482,7 +482,7 @@ export class ChatController {
         mimetype: file.mimetype,
         size: file.size,
         hasBuffer: !!file.buffer,
-        bufferLength: file.buffer?.length
+        bufferLength: file.buffer?.length,
       });
 
       // Validate file properties
@@ -526,7 +526,7 @@ export class ChatController {
       const updated = await chatService.updateGroupAvatar(
         chatId,
         req.user.id,
-        fileUrl
+        fileUrl,
       );
       devLog("Group avatar updated successfully");
 
@@ -544,10 +544,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        devError(
-          "Failed to emit group:updated (avatar) event:",
-          socketError
-        );
+        devError("Failed to emit group:updated (avatar) event:", socketError);
       }
 
       res.status(200).json({
@@ -557,9 +554,14 @@ export class ChatController {
       } as ApiResponse);
     } catch (error) {
       devError("Error in updateGroupAvatar:", error);
-      devError("Error stack:", error instanceof Error ? error.stack : String(error));
+      devError(
+        "Error stack:",
+        error instanceof Error ? error.stack : String(error),
+      );
       const message =
-        error instanceof Error ? error.message : "Failed to update group avatar";
+        error instanceof Error
+          ? error.message
+          : "Failed to update group avatar";
       res.status(400).json({
         success: false,
         message,

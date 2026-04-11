@@ -8,7 +8,7 @@ function getKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
   if (!key || key.length < 32) {
     throw new Error(
-      "ENCRYPTION_KEY must be set and at least 32 characters long"
+      "ENCRYPTION_KEY must be set and at least 32 characters long",
     );
   }
   return Buffer.from(key.slice(0, 32), "utf8");
@@ -28,11 +28,9 @@ export function encrypt(plaintext: string): string {
 
   const authTag = cipher.getAuthTag();
 
-  return [
-    iv.toString("base64"),
-    authTag.toString("base64"),
-    encrypted,
-  ].join(":");
+  return [iv.toString("base64"), authTag.toString("base64"), encrypted].join(
+    ":",
+  );
 }
 
 /**

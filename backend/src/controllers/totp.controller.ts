@@ -3,9 +3,7 @@ import { totpService } from "../services/totp.service.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 
 export class TOTPController {
-  /**
-   * Generate TOTP secret and QR code
-   */
+  // * Generate TOTP secret and QR code
   async generateTOTP(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -24,7 +22,8 @@ export class TOTPController {
         data: result,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to generate TOTP";
+      const message =
+        error instanceof Error ? error.message : "Failed to generate TOTP";
       res.status(400).json({
         success: false,
         message,
@@ -32,9 +31,7 @@ export class TOTPController {
     }
   }
 
-  /**
-   * Verify and enable TOTP
-   */
+  // * Verify and enable TOTP
   async verifyAndEnableTOTP(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -62,7 +59,8 @@ export class TOTPController {
         message: "TOTP enabled successfully",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to enable TOTP";
+      const message =
+        error instanceof Error ? error.message : "Failed to enable TOTP";
       res.status(400).json({
         success: false,
         message,
@@ -70,9 +68,7 @@ export class TOTPController {
     }
   }
 
-  /**
-   * Disable TOTP
-   */
+  //* Disable TOTP
   async disableTOTP(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -100,7 +96,8 @@ export class TOTPController {
         message: "TOTP disabled successfully",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to disable TOTP";
+      const message =
+        error instanceof Error ? error.message : "Failed to disable TOTP";
       res.status(400).json({
         success: false,
         message,

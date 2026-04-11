@@ -38,19 +38,19 @@ import type {
 
 import { getUploadsDir } from "./utils/paths.js";
 
-// Validate environment before doing anything
+// Validating environment
 validateEnvironment();
 
 // Constants
 const PORT = parseInt(process.env.PORT || "8080", 10);
 const CLIENT_URL = process.env.CLIENT_URL!;
 
-// Initialize Express
+//* Express Initialization
 const app: Express = express();
 app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
-//Initialize Socket.IO
+//* Initialize Socket.IO
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -66,7 +66,7 @@ const io = new Server<
   pingInterval: 25000,
 });
 
-// ─── Middlewares Setup ───
+//* Middlewares Setup
 
 // 1. Logging
 setupLogging(app);
@@ -94,18 +94,15 @@ app.use(
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader(
         "Content-Security-Policy",
-        "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'"
+        "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'",
       );
-      res.setHeader(
-        "Access-Control-Allow-Origin",
-        CLIENT_URL
-      );
+      res.setHeader("Access-Control-Allow-Origin", CLIENT_URL);
       res.setHeader("Access-Control-Allow-Credentials", "true");
     },
-  })
+  }),
 );
 
-// ─── API Routes ───
+//* API Routes
 app.use("/api", routes);
 app.use("/api/message", messageRoutes);
 app.use("/api/chat", chatRoutes);
@@ -114,7 +111,7 @@ app.use("/api/block", blockRoutes);
 app.use("/api/invite", inviteRoutes);
 app.use("/api/status", statusRoutes);
 
-// ─── Health Check ────
+//* Health Check
 app.get("/health", async (req: Request, res: Response) => {
   const dbHealthy = await checkDatabaseHealth();
 
@@ -130,12 +127,12 @@ app.get("/health", async (req: Request, res: Response) => {
   });
 });
 
-// ─── Info Route ────
+//* Info Route
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chit-Chat Application API" });
 });
 
-// ─── 404 Handler ────
+//* 404 Handler
 app.use((req: Request, res: Response) => {
   if (req.path.startsWith("/uploads")) {
     res.status(404).send("File not found");
@@ -147,11 +144,18 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// ─── Error Handler ──────
+//* Error Handler
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   const sanitizedBody = req.body ? { ...req.body } : undefined;
   if (sanitizedBody) {
-    for (const key of ["password", "newPassword", "totpToken", "totpSecret", "refreshToken", "token"]) {
+    for (const key of [
+      "password",
+      "newPassword",
+      "totpToken",
+      "totpSecret",
+      "refreshToken",
+      "token",
+    ]) {
       if (key in sanitizedBody) sanitizedBody[key] = "[REDACTED]";
     }
   }
@@ -163,10 +167,9 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       url: req.url,
       body: sanitizedBody,
     },
-    "Unhandled error"
+    "Unhandled error",
   );
 
-  // Don't leak error details in production
   const message =
     process.env.NODE_ENV === "development"
       ? err.message
@@ -178,11 +181,11 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// ─── Socket.IO Setup ────
+//* Socket.IO Setup
 setupSocket(io);
 setIO(io);
 
-// ─── Server Startup ────
+//* Server Startup
 async function startServer(): Promise<void> {
   try {
     // 1. Run migrations
@@ -202,7 +205,7 @@ async function startServer(): Promise<void> {
   }
 }
 
-// ─── Graceful Shutdown ────
+//* Graceful Shutdown
 async function gracefulShutdown(signal: string): Promise<void> {
   logger.info({ signal }, "Shutdown signal received");
 
@@ -236,7 +239,7 @@ process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
 });
 
-// ─── Start ─────
+// Start
 startServer();
 
 export { app, io };

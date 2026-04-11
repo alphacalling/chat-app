@@ -3,9 +3,7 @@ import { inviteService } from "../services/invite.service.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 
 export class InviteController {
-  /**
-   * Create invite link
-   */
+  //* Create invite link
   async createInviteLink(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
@@ -23,7 +21,7 @@ export class InviteController {
         chatId,
         req.user.id,
         expiresAt ? new Date(expiresAt) : undefined,
-        maxUses
+        maxUses,
       );
 
       res.status(200).json({
@@ -41,9 +39,7 @@ export class InviteController {
     }
   }
 
-  /**
-   * Get invite links for a group
-   */
+  //* Get invite links for a group
   async getInviteLinks(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
@@ -72,9 +68,7 @@ export class InviteController {
     }
   }
 
-  /**
-   * Join group via invite link
-   */
+  //* Join group via invite link
   async joinViaInviteLink(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { code } = req.body;
@@ -112,9 +106,7 @@ export class InviteController {
     }
   }
 
-  /**
-   * Revoke invite link
-   */
+  //* Revoke invite link
   async revokeInviteLink(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { linkId } = req.params;

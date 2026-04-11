@@ -24,24 +24,28 @@ type TypedServer = Server<
   SocketData
 >;
 
-// Online users store (Production me Redis use karo)
-const onlineUsers = new Map<string, string>(); // userId -> socketId
+// Online users store
+const onlineUsers = new Map<string, string>();
 
-// Parse Cookie header (e.g. "accessToken=xyz; refreshToken=abc")
-function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+// Parse Cookie header
+function parseCookies(
+  cookieHeader: string | undefined,
+): Record<string, string> {
   if (!cookieHeader) return {};
-  return cookieHeader.split(";").reduce((acc, s) => {
-    const eq = s.indexOf("=");
-    if (eq === -1) return acc;
-    const k = s.slice(0, eq).trim();
-    const v = s.slice(eq + 1).trim();
-    acc[k] = v;
-    return acc;
-  }, {} as Record<string, string>);
+  return cookieHeader.split(";").reduce(
+    (acc, s) => {
+      const eq = s.indexOf("=");
+      if (eq === -1) return acc;
+      const k = s.slice(0, eq).trim();
+      const v = s.slice(eq + 1).trim();
+      acc[k] = v;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 }
 
 export function setupSocket(io: TypedServer): void {
-  // Auth middleware: verify access token from cookie (httpOnly cookies sent with withCredentials)
   io.use((socket: TypedSocket, next) => {
     const cookieHeader =
       socket.handshake.headers?.cookie ??
@@ -127,7 +131,7 @@ export function setupSocket(io: TypedServer): void {
         }
 
         devLog(
-          `✅ User ${userId} connected. Online users: ${onlineUsers.size}`
+          `✅ User ${userId} connected. Online users: ${onlineUsers.size}`,
         );
       } catch (error) {
         devError("Error in user:connect:", error);
@@ -215,11 +219,12 @@ export function setupSocket(io: TypedServer): void {
         // For 1-on-1 chats, check if user is blocked
         if (chat && !chat.isGroup && chat.participants.length > 0) {
           const otherUserId = chat.participants[0].userId;
-          
+
           // Check if sender blocked the other user OR other user blocked the sender
-          const isBlocked = await blockService.isBlocked(senderId, otherUserId) || 
-                           await blockService.isBlocked(otherUserId, senderId);
-          
+          const isBlocked =
+            (await blockService.isBlocked(senderId, otherUserId)) ||
+            (await blockService.isBlocked(otherUserId, senderId));
+
           if (isBlocked) {
             if (typeof callback === "function") {
               callback({
@@ -237,7 +242,10 @@ export function setupSocket(io: TypedServer): void {
           });
           if (!replyMsg) {
             if (typeof callback === "function") {
-              callback({ success: false, error: "Reply message not found in this chat" });
+              callback({
+                success: false,
+                error: "Reply message not found in this chat",
+              });
             }
             return;
           }
@@ -448,7 +456,7 @@ export function setupSocket(io: TypedServer): void {
         });
 
         devLog(
-          `❌ User ${userId} disconnected. Online users: ${onlineUsers.size}`
+          `❌ User ${userId} disconnected. Online users: ${onlineUsers.size}`,
         );
       }
     });
@@ -552,7 +560,9 @@ export function setupSocket(io: TypedServer): void {
           where: { chatId, userId: emitterId, role: "ADMIN" },
         });
         if (!isAdmin) {
-          socket.emit("error", { message: "Only admins can update group info" });
+          socket.emit("error", {
+            message: "Only admins can update group info",
+          });
           return;
         }
 

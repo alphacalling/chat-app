@@ -135,7 +135,7 @@ export class AuthController {
       }
 
       const result = await authService.forgotPassword(
-        validationResult.data.phone
+        validationResult.data.phone,
       );
 
       res.status(200).json({
@@ -172,7 +172,8 @@ export class AuthController {
 
       res.status(200).json({
         success: true,
-        message: "Password reset successful. Please log in with your new password.",
+        message:
+          "Password reset successful. Please log in with your new password.",
       } as ApiResponse);
     } catch (error) {
       const message =
@@ -307,7 +308,12 @@ export class AuthController {
       }
 
       // Clear httpOnly cookies
-      const cookieOpts = { path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" as const };
+      const cookieOpts = {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict" as const,
+      };
       res.clearCookie("accessToken", cookieOpts);
       res.clearCookie("refreshToken", cookieOpts);
 
@@ -338,7 +344,9 @@ export class AuthController {
       const baseUrl = req.protocol + "://" + req.get("host");
       const data = {
         ...user,
-        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+        avatar: user.avatar
+          ? getFullFileUrl(user.avatar, baseUrl)
+          : user.avatar,
       };
 
       res.status(200).json({
@@ -445,7 +453,9 @@ export class AuthController {
       const baseUrl = req.protocol + "://" + req.get("host");
       const userWithFullAvatar = {
         ...user,
-        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+        avatar: user.avatar
+          ? getFullFileUrl(user.avatar, baseUrl)
+          : user.avatar,
       };
 
       res.status(200).json({
@@ -504,7 +514,9 @@ export class AuthController {
       const baseUrl = req.protocol + "://" + req.get("host");
       const userWithFullAvatar = {
         ...user,
-        avatar: user.avatar ? getFullFileUrl(user.avatar, baseUrl) : user.avatar,
+        avatar: user.avatar
+          ? getFullFileUrl(user.avatar, baseUrl)
+          : user.avatar,
       };
 
       res.status(200).json({

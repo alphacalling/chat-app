@@ -6,15 +6,15 @@ const router = Router();
 
 // Protected routes
 router.post("/block", authMiddleware, (req, res) =>
-  blockController.blockUser(req, res)
+  blockController.blockUser(req, res),
 );
 
 router.post("/unblock", authMiddleware, (req, res) =>
-  blockController.unblockUser(req, res)
+  blockController.unblockUser(req, res),
 );
 
 router.get("/list", authMiddleware, (req, res) =>
-  blockController.getBlockedUsers(req, res)
+  blockController.getBlockedUsers(req, res),
 );
 
 export default router;

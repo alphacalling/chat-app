@@ -5,17 +5,17 @@ import { totpLimiter } from "../middlewares/security.js";
 
 const router = Router();
 
-// Protected routes — TOTP rate limited
+// Protected routes
 router.post("/generate", authMiddleware, totpLimiter, (req, res) =>
-  totpController.generateTOTP(req, res)
+  totpController.generateTOTP(req, res),
 );
 
 router.post("/enable", authMiddleware, totpLimiter, (req, res) =>
-  totpController.verifyAndEnableTOTP(req, res)
+  totpController.verifyAndEnableTOTP(req, res),
 );
 
 router.post("/disable", authMiddleware, totpLimiter, (req, res) =>
-  totpController.disableTOTP(req, res)
+  totpController.disableTOTP(req, res),
 );
 
 export default router;

@@ -8,7 +8,7 @@ import { blockService } from "../services/block.service.js";
 import { onlineUsers } from "../socket/socket.js";
 
 export class MessageController {
-  // Get messages for a chat
+  //* Get messages for a chat
   async getMessages(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
@@ -49,11 +49,12 @@ export class MessageController {
       let blockedSenderIds: string[] = [];
       if (chat && !chat.isGroup && chat.participants.length > 0) {
         const otherUserId = chat.participants[0].userId;
-        
+
         // Check if current user blocked the other user OR other user blocked current user
-        const isBlocked = await blockService.isBlocked(req.user.id, otherUserId) || 
-                         await blockService.isBlocked(otherUserId, req.user.id);
-        
+        const isBlocked =
+          (await blockService.isBlocked(req.user.id, otherUserId)) ||
+          (await blockService.isBlocked(otherUserId, req.user.id));
+
         if (isBlocked) {
           // If blocked, don't show messages from the blocked user
           blockedSenderIds = [otherUserId];
@@ -64,10 +65,10 @@ export class MessageController {
       const cursor = req.query.cursor as string | undefined;
 
       const messages = await prisma.message.findMany({
-        where: { 
+        where: {
           chatId,
           ...(blockedSenderIds.length > 0 && {
-            senderId: { notIn: blockedSenderIds }
+            senderId: { notIn: blockedSenderIds },
           }),
           ...(cursor && { createdAt: { lt: new Date(cursor) } }),
         },
@@ -123,7 +124,7 @@ export class MessageController {
     }
   }
 
-  // Send a text message
+  //* Send a text message
   async sendMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId, content, replyToId } = req.body;
@@ -271,7 +272,7 @@ export class MessageController {
     }
   }
 
-  // Send a media/file message
+  //* Send a media/file message
   async sendMedia(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -320,11 +321,12 @@ export class MessageController {
       // For 1-on-1 chats, check if user is blocked
       if (chat && !chat.isGroup && chat.participants.length > 0) {
         const otherUserId = chat.participants[0].userId;
-        
+
         // Check if sender blocked the other user OR other user blocked the sender
-        const isBlocked = await blockService.isBlocked(req.user.id, otherUserId) || 
-                         await blockService.isBlocked(otherUserId, req.user.id);
-        
+        const isBlocked =
+          (await blockService.isBlocked(req.user.id, otherUserId)) ||
+          (await blockService.isBlocked(otherUserId, req.user.id));
+
         if (isBlocked) {
           res.status(403).json({
             success: false,
@@ -345,8 +347,8 @@ export class MessageController {
         messageType === "IMAGE"
           ? "image"
           : messageType === "VIDEO"
-          ? "video"
-          : "raw";
+            ? "video"
+            : "raw";
 
       const uploadResult = await uploadToCloudinary(file.buffer, {
         resource_type: cloudinaryResourceType,
@@ -435,7 +437,7 @@ export class MessageController {
     }
   }
 
-  // Delete a message
+  //* Delete a message
   async deleteMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -468,7 +470,7 @@ export class MessageController {
 
       const deletedMessage = await messageService.deleteMessage(
         messageId,
-        req.user.id
+        req.user.id,
       );
 
       // Broadcast deletion via socket
@@ -494,7 +496,7 @@ export class MessageController {
     }
   }
 
-  // Mark all messages in a chat as read
+  //* Mark all messages in a chat as read
   async markChatAsRead(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -542,7 +544,7 @@ export class MessageController {
     }
   }
 
-  // Get unread message count for a chat
+  //* Get unread message count for a chat
   async getUnreadCount(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -589,7 +591,7 @@ export class MessageController {
     }
   }
 
-  // Get unread counts for all chats
+  //* Get unread counts for all chats
   async getAllUnreadCounts(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -605,14 +607,12 @@ export class MessageController {
       } as ApiResponse);
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to get unread counts";
+        error instanceof Error ? error.message : "Failed to get unread counts";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Edit a message
+  //* Edit a message
   async editMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { messageId } = req.params;
@@ -631,7 +631,11 @@ export class MessageController {
         return;
       }
 
-      const updated = await messageService.editMessage(messageId, req.user.id, content);
+      const updated = await messageService.editMessage(
+        messageId,
+        req.user.id,
+        content,
+      );
 
       // Broadcast update via socket
       const { getIO } = await import("../utils/socket.js");
@@ -651,12 +655,13 @@ export class MessageController {
         data: updated,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to edit message";
+      const message =
+        error instanceof Error ? error.message : "Failed to edit message";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Add reaction to message
+  //* Add reaction to message
   async addReaction(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { messageId } = req.params;
@@ -675,7 +680,11 @@ export class MessageController {
         return;
       }
 
-      const reaction = await messageService.addReaction(messageId, req.user.id, emoji);
+      const reaction = await messageService.addReaction(
+        messageId,
+        req.user.id,
+        emoji,
+      );
 
       // Get message to broadcast
       const message = await prisma.message.findUnique({
@@ -705,12 +714,13 @@ export class MessageController {
         data: reaction,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to add reaction";
+      const message =
+        error instanceof Error ? error.message : "Failed to add reaction";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Remove reaction from message
+  //* Remove reaction from message
   async removeReaction(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { messageId } = req.params;
@@ -749,12 +759,13 @@ export class MessageController {
         message: "Reaction removed",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to remove reaction";
+      const message =
+        error instanceof Error ? error.message : "Failed to remove reaction";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Pin a message
+  //* Pin a message
   async pinMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { messageId } = req.params;
@@ -773,7 +784,11 @@ export class MessageController {
         return;
       }
 
-      const pinned = await messageService.pinMessage(messageId, chatId, req.user.id);
+      const pinned = await messageService.pinMessage(
+        messageId,
+        chatId,
+        req.user.id,
+      );
 
       // Broadcast pin via socket
       const { getIO } = await import("../utils/socket.js");
@@ -791,12 +806,13 @@ export class MessageController {
         data: pinned,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to pin message";
+      const message =
+        error instanceof Error ? error.message : "Failed to pin message";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Unpin a message
+  //* Unpin a message
   async unpinMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { messageId } = req.params;
@@ -831,12 +847,13 @@ export class MessageController {
         message: "Message unpinned",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to unpin message";
+      const message =
+        error instanceof Error ? error.message : "Failed to unpin message";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }
 
-  // Get pinned message
+  //* Get pinned message
   async getPinnedMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
@@ -853,7 +870,8 @@ export class MessageController {
         data: pinned,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to get pinned message";
+      const message =
+        error instanceof Error ? error.message : "Failed to get pinned message";
       res.status(400).json({ success: false, message } as ApiResponse);
     }
   }

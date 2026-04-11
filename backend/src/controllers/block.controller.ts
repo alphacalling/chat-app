@@ -3,8 +3,7 @@ import { blockService } from "../services/block.service.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 
 export class BlockController {
-
-// Block a user
+  //* Block a user
   async blockUser(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -32,7 +31,8 @@ export class BlockController {
         message: "User blocked successfully",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to block user";
+      const message =
+        error instanceof Error ? error.message : "Failed to block user";
       res.status(400).json({
         success: false,
         message,
@@ -40,7 +40,7 @@ export class BlockController {
     }
   }
 
- // Unblock a user
+  //* Unblock a user
   async unblockUser(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -68,7 +68,8 @@ export class BlockController {
         message: "User unblocked successfully",
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to unblock user";
+      const message =
+        error instanceof Error ? error.message : "Failed to unblock user";
       res.status(400).json({
         success: false,
         message,
@@ -76,8 +77,7 @@ export class BlockController {
     }
   }
 
-
-  // Get blocked users
+  //* Get blocked users
   async getBlockedUsers(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -95,7 +95,8 @@ export class BlockController {
         data: blocked,
       } as ApiResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to get blocked users";
+      const message =
+        error instanceof Error ? error.message : "Failed to get blocked users";
       res.status(400).json({
         success: false,
         message,

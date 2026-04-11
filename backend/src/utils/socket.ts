@@ -13,7 +13,7 @@ let ioInstance: Server<
 > | null = null;
 
 export function setIO(
-  io: Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  io: Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
 ): void {
   ioInstance = io;
 }
