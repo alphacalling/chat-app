@@ -176,7 +176,13 @@ export const chatAPI = {
 
 //* MESSAGE APIs
 export const messageAPI = {
-  getMessages: (chatId: string) => api.get(`/message/get-messages/${chatId}`),
+  getMessages: (chatId: string, cursor?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (cursor) params.set("cursor", cursor);
+    if (limit) params.set("limit", String(limit));
+    const query = params.toString();
+    return api.get(`/message/get-messages/${chatId}${query ? `?${query}` : ""}`);
+  },
 
   sendMessage: (chatId: string, content: string) =>
     api.post("/message/send-message", { chatId, content }),

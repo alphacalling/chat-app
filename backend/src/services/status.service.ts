@@ -57,25 +57,10 @@ export class StatusService {
 
   //* Get all statuses from contacts (users you chat with)
   async getStatuses(userId: string) {
-    const userChats = await prisma.chatParticipant.findMany({
-      where: { userId },
-      select: { chatId: true },
-    });
+    const contactIds = await this.getContactIds(userId);
 
-    const chatIds = userChats.map((cp) => cp.chatId);
+    if (contactIds.length === 0) return [];
 
-    // Get all participants from these chats (excluding current user)
-    const participants = await prisma.chatParticipant.findMany({
-      where: {
-        chatId: { in: chatIds },
-        userId: { not: userId },
-      },
-      select: { userId: true },
-    });
-
-    const contactIds = [...new Set(participants.map((p) => p.userId))];
-
-    // Get active statuses from contacts
     const statuses = await prisma.status.findMany({
       where: {
         userId: { in: contactIds },
@@ -99,7 +84,6 @@ export class StatusService {
       orderBy: { createdAt: "desc" },
     });
 
-    // Group by user
     const groupedByUser: Record<string, any[]> = {};
     statuses.forEach((status) => {
       if (!groupedByUser[status.userId]) {
@@ -108,7 +92,7 @@ export class StatusService {
       groupedByUser[status.userId].push(status);
     });
 
-    return Object.entries(groupedByUser).map(([userId, userStatuses]) => ({
+    return Object.entries(groupedByUser).map(([, userStatuses]) => ({
       user: userStatuses[0].user,
       statuses: userStatuses,
     }));
@@ -160,21 +144,42 @@ export class StatusService {
 
   //* Get contact IDs (users sharing a chat with the given user)
   async getContactIds(userId: string): Promise<string[]> {
-    const userChats = await prisma.chatParticipant.findMany({
-      where: { userId },
-      select: { chatId: true },
-    });
-    const chatIds = userChats.map((cp) => cp.chatId);
-
-    const participants = await prisma.chatParticipant.findMany({
+    const chats = await prisma.chat.findMany({
       where: {
-        chatId: { in: chatIds },
-        userId: { not: userId },
+        participants: {
+          some: { userId },
+        },
       },
-      select: { userId: true },
+      select: {
+        participants: {
+          where: { userId: { not: userId } },
+          select: { userId: true },
+        },
+      },
     });
 
-    return [...new Set(participants.map((p) => p.userId))];
+    const sharedChatContactIds = [
+      ...new Set(chats.flatMap((c) => c.participants.map((p) => p.userId))),
+    ];
+
+    // Fallback: if no shared-chat contacts exist, use all app users
+    // except self and mutually blocked users.
+    if (sharedChatContactIds.length > 0) {
+      return sharedChatContactIds;
+    }
+
+    const allReachableUsers = await prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        AND: [
+          { blockedUsers: { none: { blockedId: userId } } }, // they did not block me
+          { blockedBy: { none: { blockerId: userId } } }, // I did not block them
+        ],
+      },
+      select: { id: true },
+    });
+
+    return allReachableUsers.map((u) => u.id);
   }
 
   //* Check if viewer is a contact of the status owner
@@ -184,11 +189,10 @@ export class StatusService {
   ): Promise<boolean> {
     const sharedChat = await prisma.chat.findFirst({
       where: {
-        participants: {
-          every: {
-            userId: { in: [statusOwnerId, viewerId] },
-          },
-        },
+        AND: [
+          { participants: { some: { userId: statusOwnerId } } },
+          { participants: { some: { userId: viewerId } } },
+        ],
       },
       select: { id: true },
     });

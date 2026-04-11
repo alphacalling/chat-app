@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 import { devError } from "../utils/devLog";
 import {
   Phone,
@@ -49,6 +49,8 @@ interface ChatUser {
   name: string;
   isOnline?: boolean;
   avatar?: string | null;
+  role?: string;
+  phone?: string;
 }
 
 interface Chat {
@@ -56,6 +58,7 @@ interface Chat {
   chatName: string | null;
   isGroupChat: boolean;
   avatar?: string | null;
+  description?: string | null;
   users: ChatUser[];
   latestMessage?: any;
   updatedAt?: string;
@@ -88,6 +91,12 @@ const ChatWindow = ({
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const isLoadingOlderRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
 
   const scrollToBottom = (smooth: boolean) => {
     messagesEndRef.current?.scrollIntoView({
@@ -96,12 +105,26 @@ const ChatWindow = ({
     });
   };
 
+  useLayoutEffect(() => {
+    if (!isLoadingOlderRef.current) return;
+
+    const viewport = scrollViewportRef.current;
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight - prevScrollHeightRef.current;
+    }
+
+    isLoadingOlderRef.current = false;
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages]);
+
   useEffect(() => {
+    if (isLoadingOlderRef.current) return;
+
     const prevLen = prevMessagesLengthRef.current;
     const newLen = messages.length;
 
     const isInitialLoad = prevLen === 0 && newLen > 0;
-    const isNewMessage = prevLen > 0 && newLen >= prevLen;
+    const isNewMessage = prevLen > 0 && newLen > prevLen;
 
     if (isInitialLoad) {
       scrollToBottom(false);
@@ -116,6 +139,8 @@ const ChatWindow = ({
     if (!selectedChat) return;
     setMessages([]);
     setPinnedMessage(null);
+    setHasMore(false);
+    setNextCursor(null);
     let cancelled = false;
 
     const fetchMessages = async () => {
@@ -124,6 +149,8 @@ const ChatWindow = ({
         const { data } = await messageAPI.getMessages(selectedChat.id);
         if (cancelled) return;
         setMessages(data.data || []);
+        setHasMore(data.hasMore || false);
+        setNextCursor(data.nextCursor || null);
 
         try {
           const pinnedData = await messageAPI.getPinnedMessage(selectedChat.id);
@@ -165,6 +192,42 @@ const ChatWindow = ({
       setOtherUserOnline(onlineUsers.has(otherUser.id));
     }
   }, [onlineUsers, selectedChat, user?.id]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedChat || !hasMore || !nextCursor || isLoadingOlderRef.current) return;
+
+    isLoadingOlderRef.current = true;
+    setLoadingOlder(true);
+
+    const viewport = scrollViewportRef.current;
+    prevScrollHeightRef.current = viewport?.scrollHeight || 0;
+
+    try {
+      const { data } = await messageAPI.getMessages(selectedChat.id, nextCursor);
+      setMessages((prev) => [...(data.data || []), ...prev]);
+      setHasMore(data.hasMore || false);
+      setNextCursor(data.nextCursor || null);
+    } catch (error) {
+      devError("Failed to load older messages:", error);
+      isLoadingOlderRef.current = false;
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [selectedChat, hasMore, nextCursor]);
+
+  useEffect(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      if (viewport.scrollTop < 100 && hasMore && !isLoadingOlderRef.current) {
+        loadOlderMessages();
+      }
+    };
+
+    viewport.addEventListener("scroll", handleScroll);
+    return () => viewport.removeEventListener("scroll", handleScroll);
+  }, [hasMore, loadOlderMessages]);
 
   useEffect(() => {
     if (!socket) return;
@@ -559,7 +622,7 @@ const ChatWindow = ({
       )}
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-stone-100/30">
+      <ScrollArea viewportRef={scrollViewportRef} className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-stone-100/30">
         <div className="p-4 space-y-1">
           {loading ? (
             <div className="flex justify-center items-center h-full py-12">
@@ -586,7 +649,13 @@ const ChatWindow = ({
               </div>
             </div>
           ) : (
-            messages.map((message, index) => {
+            <>
+              {loadingOlder && (
+                <div className="flex justify-center py-3">
+                  <div className="animate-spin h-6 w-6 border-3 border-teal-600 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+              {messages.map((message, index) => {
               const isOwn = message.senderId === user?.id;
               return (
                 <div
@@ -610,7 +679,8 @@ const ChatWindow = ({
                   </div>
                 </div>
               );
-            })
+            })}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -671,9 +741,10 @@ const ChatWindow = ({
             users: selectedChat.users.map((u) => ({
               id: u.id,
               name: u.name,
-              phone: "",
+              phone: u.phone || "",
               avatar: u.avatar || undefined,
               isOnline: u.isOnline,
+              role: u.role,
             })),
           }}
           onClose={() => setShowGroupInfo(false)}
@@ -684,6 +755,7 @@ const ChatWindow = ({
                 chatName: updatedChat.chatName || updatedChat.name,
                 isGroupChat: updatedChat.isGroupChat || updatedChat.isGroup,
                 avatar: updatedChat.avatar,
+                description: updatedChat.description,
                 users: updatedChat.users || [],
                 latestMessage: updatedChat.latestMessage,
                 updatedAt: updatedChat.updatedAt || new Date().toISOString(),

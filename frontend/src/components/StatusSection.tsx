@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { statusAPI } from "../apis/api";
 import { devError } from "../utils/devLog";
 import { useAuth } from "../context/useAuth";
+import { useSocketContext } from "../context/useSocket";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -29,6 +30,7 @@ interface Status {
 
 const StatusSection = () => {
   const { user } = useAuth();
+  const { socket } = useSocketContext();
   const [statuses, setStatuses] = useState<any[]>([]);
   const [myStatuses, setMyStatuses] = useState<Status[]>([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -53,6 +55,28 @@ const StatusSection = () => {
     }, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewStatus = () => {
+      fetchStatuses();
+      fetchMyStatuses();
+    };
+
+    const handleStatusDeleted = () => {
+      fetchStatuses();
+      fetchMyStatuses();
+    };
+
+    socket.on("status:new", handleNewStatus);
+    socket.on("status:deleted", handleStatusDeleted);
+
+    return () => {
+      socket.off("status:new", handleNewStatus);
+      socket.off("status:deleted", handleStatusDeleted);
+    };
+  }, [socket]);
 
   const fetchStatuses = async () => {
     try {

@@ -73,11 +73,18 @@ export async function runMigrations(): Promise<void> {
     execSync("npx prisma migrate deploy", {
       stdio: "inherit",
       env: process.env,
+      timeout: 30000,
     });
     logger.info("Database migrations applied successfully");
   } catch (error) {
-    logger.fatal({ err: error }, "Database migration failed");
-    throw error;
+    if (process.env.NODE_ENV === "production") {
+      logger.fatal({ err: error }, "Database migration failed");
+      throw error;
+    }
+    logger.warn(
+      { err: error },
+      "Database migration failed (non-fatal in development). Run migrations manually if needed: npx prisma migrate deploy",
+    );
   }
 }
 

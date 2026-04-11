@@ -40,6 +40,7 @@ export interface ChatUser {
   avatar?: string | null;
   isOnline?: boolean;
   lastSeen?: string;
+  role?: string;
 }
 
 export interface ChatMessage {
@@ -58,6 +59,7 @@ export interface Chat {
   chatName: string | null;
   isGroupChat: boolean;
   avatar?: string | null;
+  description?: string | null;
   users: ChatUser[];
   latestMessage: ChatMessage | null;
   updatedAt: string;
