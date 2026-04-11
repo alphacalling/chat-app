@@ -2,6 +2,7 @@ import { Router } from "express";
 import { chatController } from "../controllers/chat.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { fileUploadMiddleware } from "../middlewares/fileUpload.middleware.js";
+import { uploadLimiter } from "../middlewares/security.js";
 
 const router = Router();
 
@@ -39,7 +40,7 @@ router.put("/update-description/:chatId", authMiddleware, (req, res) =>
   chatController.updateGroupDescription(req, res)
 );
 
-router.put("/update-avatar/:chatId", authMiddleware, fileUploadMiddleware, (req, res) =>
+router.put("/update-avatar/:chatId", authMiddleware, uploadLimiter, fileUploadMiddleware, (req, res) =>
   chatController.updateGroupAvatar(req, res)
 );
 

@@ -1,5 +1,6 @@
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { randomBytes } from "crypto";
 
 export interface TOTPConfig {
   secret: string;
@@ -7,9 +8,6 @@ export interface TOTPConfig {
   backupCodes: string[];
 }
 
-/**
- * Generate TOTP secret and QR code for a user
- */
 export function generateTOTPSecret(userEmail: string, appName: string = "WhatsApp Clone"): TOTPConfig {
   const secret = speakeasy.generateSecret({
     name: `${appName} (${userEmail})`,
@@ -17,9 +15,10 @@ export function generateTOTPSecret(userEmail: string, appName: string = "WhatsAp
     length: 32,
   });
 
-  // Generate backup codes (10 codes, 8 digits each)
   const backupCodes = Array.from({ length: 10 }, () => {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
+    const buf = randomBytes(4);
+    const num = (buf.readUInt32BE(0) % 90000000) + 10000000;
+    return num.toString();
   });
 
   return {
@@ -53,9 +52,14 @@ export function verifyTOTP(token: string, secret: string): boolean {
 }
 
 /**
- * Verify backup code
+ * Verify backup code and return remaining codes (null if not valid).
  */
-export function verifyBackupCode(code: string, backupCodes: string): boolean {
+export function verifyBackupCode(code: string, backupCodes: string): { valid: boolean; remainingCodes: string } {
   const codes = backupCodes.split(",");
-  return codes.includes(code);
+  const index = codes.indexOf(code);
+  if (index === -1) {
+    return { valid: false, remainingCodes: backupCodes };
+  }
+  codes.splice(index, 1);
+  return { valid: true, remainingCodes: codes.join(",") };
 }

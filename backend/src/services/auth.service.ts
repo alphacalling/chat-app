@@ -1,6 +1,8 @@
 import { prisma } from "../configs/database.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.js";
+import { encrypt, decrypt, isEncrypted } from "../utils/encryption.js";
+import { blockService } from "./block.service.js";
 import type {
   RegisterDTO,
   LoginDTO,
@@ -52,13 +54,11 @@ export class AuthService {
       phone: user.phone,
     });
 
-    // Save refresh token in DB
     await prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken: tokens.refreshToken },
+      data: { refreshToken: encrypt(tokens.refreshToken) },
     });
 
-    // Return user without sensitive fields
     const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
       user;
 
@@ -91,12 +91,32 @@ export class AuthService {
         return { user: safeUser, tokens: {} as AuthTokens, requiresTOTP: true };
       }
 
-      // Verify TOTP token
       const { verifyTOTP, verifyBackupCode } = await import("../utils/totp.js");
-      const totpValid = user.totpSecret && (
-        verifyTOTP(data.totpToken, user.totpSecret) ||
-        (user.totpBackupCodes && verifyBackupCode(data.totpToken, user.totpBackupCodes))
-      );
+
+      const totpSecret = user.totpSecret
+        ? isEncrypted(user.totpSecret)
+          ? decrypt(user.totpSecret)
+          : user.totpSecret
+        : null;
+
+      const backupCodes = user.totpBackupCodes
+        ? isEncrypted(user.totpBackupCodes)
+          ? decrypt(user.totpBackupCodes)
+          : user.totpBackupCodes
+        : null;
+
+      let totpValid = totpSecret ? verifyTOTP(data.totpToken, totpSecret) : false;
+
+      if (!totpValid && backupCodes) {
+        const result = verifyBackupCode(data.totpToken, backupCodes);
+        if (result.valid) {
+          totpValid = true;
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { totpBackupCodes: encrypt(result.remainingCodes) },
+          });
+        }
+      }
 
       if (!totpValid) {
         throw new Error("Invalid TOTP token");
@@ -109,17 +129,15 @@ export class AuthService {
       phone: user.phone,
     });
 
-    // Update refresh token and online status
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        refreshToken: tokens.refreshToken,
+        refreshToken: encrypt(tokens.refreshToken),
         isOnline: true,
         lastSeen: new Date(),
       },
     });
 
-    // Return user without sensitive fields
     const {
       password,
       refreshToken,
@@ -131,34 +149,43 @@ export class AuthService {
     return { user: safeUser, tokens };
   }
 
-  // Refresh tokens
   async refreshTokens(oldRefreshToken: string): Promise<AuthTokens> {
-    // Verify old refresh token
     const payload = verifyRefreshToken(oldRefreshToken);
 
     if (!payload) {
       throw new Error("Invalid refresh token");
     }
 
-    // Find user and check if refresh token matches
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
     });
 
-    if (!user || user.refreshToken !== oldRefreshToken) {
+    if (!user || !user.refreshToken) {
       throw new Error("Invalid refresh token");
     }
 
-    // Generate new tokens
+    // Decrypt stored token for comparison
+    let storedToken: string;
+    try {
+      storedToken = isEncrypted(user.refreshToken)
+        ? decrypt(user.refreshToken)
+        : user.refreshToken;
+    } catch {
+      throw new Error("Invalid refresh token");
+    }
+
+    if (storedToken !== oldRefreshToken) {
+      throw new Error("Invalid refresh token");
+    }
+
     const tokens = generateTokens({
       userId: user.id,
       phone: user.phone,
     });
 
-    // Update refresh token in DB
     await prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken: tokens.refreshToken },
+      data: { refreshToken: encrypt(tokens.refreshToken) },
     });
 
     return tokens;
@@ -196,24 +223,22 @@ export class AuthService {
     return safeUser;
   }
 
-  // Get another user's profile (public info only)
   async getUserProfile(userId: string, requesterId: string): Promise<SafeUser> {
-    console.log("🔍🔍🔍 getUserProfile service called");
-    console.log("🔍 userId:", userId);
-    console.log("🔍 requesterId:", requesterId);
-    
     if (!userId || userId.trim() === "") {
-      console.error("❌ Invalid userId provided:", userId);
       throw new Error("Invalid user ID");
     }
 
-    // Don't allow viewing your own profile through this endpoint (use /me/profile instead)
     if (userId === requesterId) {
-      console.log("⚠️ User trying to view own profile via /user/:userId endpoint");
       throw new Error("Use /me/profile endpoint to view your own profile");
     }
 
-    console.log("🔍 Querying database for user:", userId);
+    const blocked =
+      (await blockService.isBlocked(requesterId, userId)) ||
+      (await blockService.isBlocked(userId, requesterId));
+    if (blocked) {
+      throw new Error("User not found");
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -230,13 +255,7 @@ export class AuthService {
       },
     });
 
-    console.log("🔍 User found:", user ? "YES" : "NO");
-    if (user) {
-      console.log("🔍 User name:", user.name);
-    }
-
     if (!user) {
-      console.error("❌ User not found in database for userId:", userId);
       throw new Error("User not found");
     }
 
@@ -245,8 +264,82 @@ export class AuthService {
       gender: null as string | null,
     };
 
-    console.log("✅✅✅ User profile retrieved successfully - NO BLOCK CHECK");
     return userWithGender as SafeUser;
+  }
+
+  async forgotPassword(phone: string): Promise<{ totpEnabled: boolean }> {
+    const user = await prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (!user || !user.totpEnabled || !user.totpSecret) {
+      throw new Error(
+        "Password reset is not available for this account. Ensure Two-Factor Authentication is enabled."
+      );
+    }
+
+    return { totpEnabled: true };
+  }
+
+  // Reset password — step 2: verify TOTP + set new password
+  async resetPassword(
+    phone: string,
+    totpToken: string,
+    newPassword: string
+  ): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (!user) {
+      throw new Error("No account found with this phone number");
+    }
+
+    if (!user.totpEnabled || !user.totpSecret) {
+      throw new Error("TOTP is not enabled on this account");
+    }
+
+    const { verifyTOTP, verifyBackupCode } = await import("../utils/totp.js");
+
+    const secret = isEncrypted(user.totpSecret)
+      ? decrypt(user.totpSecret)
+      : user.totpSecret;
+
+    const backupCodes = user.totpBackupCodes
+      ? isEncrypted(user.totpBackupCodes)
+        ? decrypt(user.totpBackupCodes)
+        : user.totpBackupCodes
+      : null;
+
+    let totpValid = verifyTOTP(totpToken, secret);
+    let updatedBackupCodes: string | null = null;
+
+    if (!totpValid && backupCodes) {
+      const result = verifyBackupCode(totpToken, backupCodes);
+      if (result.valid) {
+        totpValid = true;
+        updatedBackupCodes = result.remainingCodes;
+      }
+    }
+
+    if (!totpValid) {
+      throw new Error("Invalid TOTP token");
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    const updateData: any = {
+      password: hashedPassword,
+      refreshToken: null,
+    };
+    if (updatedBackupCodes !== null) {
+      updateData.totpBackupCodes = encrypt(updatedBackupCodes);
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: updateData,
+    });
   }
 
   // Update profile

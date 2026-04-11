@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api, { chatAPI } from "../apis/api";
+import { devWarn, devError } from "../utils/devLog";
 import { useSocketContext } from "../context/useSocket";
 import { useAuth } from "../context/useAuth";
 import UserSearch from "./UserSearch";
@@ -22,6 +23,13 @@ import {
 } from "lucide-react";
 import SettingsModal from "./SettingsModal";
 import StatusSection from "./StatusSection";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 
 // Chat interface
 export interface ChatUser {
@@ -65,6 +73,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
   const [showSearch, setShowSearch] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,7 +93,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
     if (data?.chats && Array.isArray(data.chats)) {
       return data.chats;
     }
-    console.warn("Unexpected API response format:", data);
+    devWarn("Unexpected API response format:", data);
     return [];
   };
 
@@ -105,7 +114,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         });
         setUnreadCounts(next);
       } catch (error) {
-        console.error("Failed to fetch unread counts:", error);
+        devError("Failed to fetch unread counts:", error);
       }
     };
 
@@ -272,7 +281,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
       const chatsArray = extractChatsArray(data);
       setConversations(chatsArray);
     } catch (error) {
-      console.error("Failed to fetch chats:", error);
+      devError("Failed to fetch chats:", error);
       setConversations([]); // Reset to empty array on error
     } finally {
       setLoading(false);
@@ -300,7 +309,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         return prev.filter((c) => c.id !== chat.id);
       });
     } catch (error) {
-      console.error("Failed to delete chat:", error);
+      devError("Failed to delete chat:", error);
     }
   };
 
@@ -312,7 +321,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         return prev.filter((c) => c.id !== chat.id);
       });
     } catch (error) {
-      console.error("Failed to leave group:", error);
+      devError("Failed to leave group:", error);
     }
   };
 
@@ -444,10 +453,7 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={async () => {
-              await logout();
-              navigate("/login");
-            }}
+            onClick={() => setShowLogoutConfirm(true)}
             className="h-10 w-10 hover:bg-red-600 text-white rounded-lg cursor-pointer"
             title="Logout"
           >
@@ -633,6 +639,39 @@ const Sidebar = ({ onSelectChat }: SidebarProps) => {
         open={showSettings}
         onClose={() => setShowSettings(false)}
       />
+
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className="max-w-sm bg-white border-gray-200 shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800 flex items-center gap-2 text-xl">
+              <LogOut className="h-5 w-5 text-red-500" />
+              Logout
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Are you sure you want to logout?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl h-11 font-semibold cursor-pointer"
+              onClick={() => setShowLogoutConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 font-semibold cursor-pointer"
+              onClick={async () => {
+                setShowLogoutConfirm(false);
+                await logout();
+                navigate("/login");
+              }}
+            >
+              Logout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

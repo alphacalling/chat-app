@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import { getErrorMessage } from "../apis/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Eye, EyeOff, MessageCircle } from "lucide-react";
@@ -36,7 +37,7 @@ const Login = () => {
       }
       // Otherwise, login is complete (user is set in context)
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      setError(getErrorMessage(err, "Invalid phone number or password. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -119,6 +120,16 @@ const Login = () => {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-green-500 hover:text-green-400 text-sm font-medium transition-colors"
+            >
+              Forgot Password?
+            </Link>
           </div>
 
           {/* Submit Button */}

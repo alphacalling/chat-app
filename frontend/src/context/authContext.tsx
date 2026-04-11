@@ -37,25 +37,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check auth on app start
+  // Check auth on app start — a 401 here is expected when not logged in
   useEffect(() => {
+    let cancelled = false;
+
     const checkAuth = async () => {
       try {
         const response = await api.get("/me/profile");
-
         const userData = response.data.data || response.data;
-
-        console.log("Profile fetched:", userData);
-        setUser(userData);
-      } catch (err: any) {
-        console.log("Auth check failed:", err.response?.data || err.message);
-        setUser(null);
+        if (!cancelled) setUser(userData);
+      } catch {
+        if (!cancelled) setUser(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     checkAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = async (
@@ -69,24 +71,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       totpToken,
     });
 
-    console.log("Full response:", response.data);
+    const responseData = response.data?.data;
 
-    const responseData = response.data.data;
+    if (!responseData) {
+      throw new Error("Unexpected server response");
+    }
 
-    // Check if TOTP is required
     if (responseData.requiresTOTP) {
-      console.log("TOTP required for user:", responseData.user);
       return { requiresTOTP: true, user: responseData.user };
     }
 
-    // Normal login flow
     const { user: userData } = responseData;
-
-    console.log("User:", userData);
-    console.log("Tokens stored in httpOnly cookies (secure)");
     setUser(userData);
-
-    console.log("Login complete, user set!");
     return { requiresTOTP: false };
   };
 
@@ -95,22 +91,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     phone: string,
     password: string,
   ): Promise<void> => {
-    const response = await api.post("/auth/register", {
-      name,
-      phone,
-      password,
-    });
-    console.log("Register response:", response.data);
+    await api.post("/auth/register", { name, phone, password });
   };
 
   const logout = async (): Promise<void> => {
     try {
       await api.post("/logout");
-    } catch (err) {
-      console.error("Logout API error:", err);
+    } catch {
+      // Logout endpoint may fail if token is already expired — that's fine
     } finally {
       setUser(null);
-      console.log("Logged out");
     }
   };
 
@@ -118,13 +108,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await api.get("/me/profile");
       const userData = response.data.data || response.data;
-      console.log("User profile refreshed:", userData);
       setUser(userData);
-    } catch (err: any) {
-      console.error(
-        "Failed to refresh user profile:",
-        err.response?.data || err.message,
-      );
+    } catch {
+      // Silent fail — profile refresh is best-effort
     }
   };
 
@@ -135,15 +121,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     setUser((prev) => (prev ? { ...prev, ...updated } : null));
   };
-
-  useEffect(() => {
-    console.log(
-      "Auth state changed - User:",
-      user?.name || "null",
-      "Loading:",
-      loading,
-    );
-  }, [user, loading]);
 
   return (
     <AuthContext.Provider

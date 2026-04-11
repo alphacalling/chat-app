@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { chatAPI, authAPI, groupAPI, inviteAPI } from "../apis/api";
+import { devLog, devError } from "../utils/devLog";
 import { useAuth } from "../context/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -28,6 +29,7 @@ interface GroupUser {
   phone: string;
   avatar?: string;
   isOnline?: boolean;
+  role?: string;
 }
 
 interface GroupInfoModalProps {
@@ -61,7 +63,9 @@ const GroupInfoModal = ({
   const [currentChat, setCurrentChat] = useState(chat);
   const { user } = useAuth();
 
-  const isAdmin = currentChat.users[0]?.id === user?.id;
+  const isAdmin = currentChat.users.some(
+    (u) => u.id === user?.id && u.role === "ADMIN"
+  );
 
   useEffect(() => {
     setCurrentChat(chat);
@@ -78,7 +82,7 @@ const GroupInfoModal = ({
       const { data } = await inviteAPI.getInviteLinks(currentChat.id);
       setInviteLinks(data.data || []);
     } catch (error) {
-      console.error("Failed to fetch invite links:", error);
+      devError("Failed to fetch invite links:", error);
     }
   };
 
@@ -93,7 +97,7 @@ const GroupInfoModal = ({
       onGroupUpdated(data.data);
       setIsRenaming(false);
     } catch (error) {
-      console.error("Error renaming group", error);
+      devError("Error renaming group", error);
       alert("Failed to rename group");
     }
   };
@@ -111,7 +115,7 @@ const GroupInfoModal = ({
       onGroupUpdated(data.data);
       setIsEditingDescription(false);
     } catch (error) {
-      console.error("Error updating description", error);
+      devError("Error updating description", error);
       alert("Failed to update description");
     }
   };
@@ -121,9 +125,9 @@ const GroupInfoModal = ({
     if (!file) return;
 
     try {
-      console.log("Uploading group avatar:", file.name);
+      devLog("Uploading group avatar:", file.name);
       const { data } = await groupAPI.updateAvatar(currentChat.id, file);
-      console.log("Group avatar uploaded successfully:", data);
+      devLog("Group avatar uploaded successfully:", data);
 
       const avatarUrl = data.data.avatar
         ? `${data.data.avatar}${data.data.avatar.includes("?") ? "&" : "?"}t=${Date.now()}`
@@ -137,7 +141,7 @@ const GroupInfoModal = ({
       onGroupUpdated(data.data);
       alert("Group avatar updated successfully!");
     } catch (error: any) {
-      console.error("Error uploading group avatar:", error);
+      devError("Error uploading group avatar:", error);
       alert(error.response?.data?.message || "Failed to upload group avatar");
     }
   };
@@ -150,7 +154,7 @@ const GroupInfoModal = ({
       navigator.clipboard.writeText(inviteUrl);
       alert("Invite link copied to clipboard!");
     } catch (error) {
-      console.error("Error creating invite link", error);
+      devError("Error creating invite link", error);
       alert("Failed to create invite link");
     }
   };
@@ -161,7 +165,7 @@ const GroupInfoModal = ({
       await inviteAPI.revokeInviteLink(linkId);
       await fetchInviteLinks();
     } catch (error) {
-      console.error("Error revoking invite link", error);
+      devError("Error revoking invite link", error);
       alert("Failed to revoke invite link");
     }
   };
@@ -176,7 +180,7 @@ const GroupInfoModal = ({
       );
       setSearchResults(filtered);
     } catch (error) {
-      console.error("Error searching users", error);
+      devError("Error searching users", error);
     } finally {
       setLoading(false);
     }
@@ -190,7 +194,7 @@ const GroupInfoModal = ({
       setSearch("");
       setSearchResults([]);
     } catch (error: any) {
-      console.error("Error adding member", error);
+      devError("Error adding member", error);
       alert(error.response?.data?.message || "Failed to add member");
     }
   };
@@ -201,7 +205,7 @@ const GroupInfoModal = ({
       const { data } = await chatAPI.removeFromGroup(chat.id, userId);
       onGroupUpdated(data.data);
     } catch (error: any) {
-      console.error("Error removing member", error);
+      devError("Error removing member", error);
       alert(error.response?.data?.message || "Failed to remove member");
     }
   };
@@ -213,7 +217,7 @@ const GroupInfoModal = ({
       onClose();
       window.location.reload();
     } catch (error: any) {
-      console.error("Error leaving group", error);
+      devError("Error leaving group", error);
       alert(error.response?.data?.message || "Failed to leave group");
     }
   };
@@ -508,7 +512,7 @@ const GroupInfoModal = ({
                         >
                           <Avatar className="h-10 w-10 ring-2 ring-emerald-200 group-hover:ring-slate-400 transition-all duration-300">
                             <AvatarFallback className="bg-gray-500 text-white text-sm font-bold">
-                              {u.name[0].toUpperCase()}
+                              {(u.name?.[0] || "?").toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
@@ -540,7 +544,7 @@ const GroupInfoModal = ({
                     <Avatar className="h-12 w-12 ring-2 ring-gray-200 group-hover:ring-slate-400 transition-all duration-300">
                       <AvatarImage src={member.avatar || undefined} />
                       <AvatarFallback className="bg-slate-600 text-white font-bold">
-                        {member.name[0].toUpperCase()}
+                        {(member.name?.[0] || "?").toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

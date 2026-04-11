@@ -2,15 +2,23 @@ import { Router, type Response } from "express";
 import { authController } from "../controllers/auth.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { fileUploadMiddleware } from "../middlewares/fileUpload.middleware.js";
+import { authLimiter, uploadLimiter } from "../middlewares/security.js";
 import type { AuthRequest } from "../types/type.js";
+import { devLog } from "../utils/devLog.js";
 
 const router = Router();
 
-// Public routes
-router.post("/auth/register", (req, res) => authController.register(req, res));
-router.post("/auth/login", (req, res) => authController.login(req, res));
-router.post("/auth/refresh", (req, res) =>
+// Public routes — auth rate limited
+router.post("/auth/register", authLimiter, (req, res) => authController.register(req, res));
+router.post("/auth/login", authLimiter, (req, res) => authController.login(req, res));
+router.post("/auth/refresh", authLimiter, (req, res) =>
   authController.refreshToken(req, res)
+);
+router.post("/auth/forgot-password", authLimiter, (req, res) =>
+  authController.forgotPassword(req, res)
+);
+router.post("/auth/reset-password", authLimiter, (req, res) =>
+  authController.resetPassword(req, res)
 );
 
 // Protected routes
@@ -26,18 +34,18 @@ router.patch("/me/update-profile", authMiddleware, (req, res) =>
 
 // Get user profile by ID - MUST be before /auth/users to avoid route conflicts
 router.get("/user/:userId", authMiddleware, (req: AuthRequest, res: Response) => {
-  console.log("✅✅✅ Route /user/:userId MATCHED! ✅✅✅");
-  console.log("📍 Request path:", req.path);
-  console.log("📍 Request originalUrl:", req.originalUrl);
-  console.log("📍 Request params:", req.params);
-  console.log("📍 User ID:", req.params.userId);
-  console.log("📍 Authenticated user:", req.user?.id);
+  devLog("✅✅✅ Route /user/:userId MATCHED! ✅✅✅");
+  devLog("📍 Request path:", req.path);
+  devLog("📍 Request originalUrl:", req.originalUrl);
+  devLog("📍 Request params:", req.params);
+  devLog("📍 User ID:", req.params.userId);
+  devLog("📍 Authenticated user:", req.user?.id);
   return authController.getUserProfile(req, res);
 });
 
 router.get("/auth/users", authMiddleware, (req, res) => authController.searchUsers(req, res));
 
-router.post("/me/upload-avatar", authMiddleware, fileUploadMiddleware, (req, res) =>
+router.post("/me/upload-avatar", authMiddleware, uploadLimiter, fileUploadMiddleware, (req, res) =>
   authController.uploadAvatar(req, res)
 );
 

@@ -7,6 +7,7 @@ import type {
 import { prisma } from "../configs/database.js";
 import { blockService } from "../services/block.service.js";
 import { verifyAccessToken } from "../utils/jwt.js";
+import { devLog, devError } from "../utils/devLog.js";
 
 // Type alias for our Socket
 type TypedSocket = Socket<
@@ -59,7 +60,7 @@ export function setupSocket(io: TypedServer): void {
   });
 
   io.on("connection", (socket: TypedSocket) => {
-    console.log(`🔌 New socket connection: ${socket.id}`);
+    devLog(`🔌 New socket connection: ${socket.id}`);
 
     // ============================================
     // USER CONNECT EVENT (userId must match token; sets online status)
@@ -67,21 +68,18 @@ export function setupSocket(io: TypedServer): void {
     socket.on("user:connect", async (userId: string) => {
       try {
         if (!userId || typeof userId !== "string") {
-          console.error("❌ Invalid userId received:", userId);
+          devError("❌ Invalid userId received:", userId);
           socket.emit("error", { message: "Invalid user ID" });
           return;
         }
-        // Ensure client cannot impersonate: userId must match authenticated user
         if (socket.data.userId && socket.data.userId !== userId) {
           socket.emit("error", { message: "Invalid user ID" });
           return;
         }
         if (!socket.data.userId) socket.data.userId = userId;
 
-        // Store user mapping
         onlineUsers.set(userId, socket.id);
 
-        // Update user status in database
         await prisma.user.update({
           where: { id: userId },
           data: {
@@ -90,24 +88,76 @@ export function setupSocket(io: TypedServer): void {
           },
         });
 
-        // Broadcast to all that user is online
+        // Send current online users list to the newly connected user
+        const currentOnlineUserIds = Array.from(onlineUsers.keys());
+        socket.emit("user:online-list", currentOnlineUserIds);
+
         socket.broadcast.emit("user:online", userId);
 
-        console.log(
+        // Deliver any pending messages for this user
+        const pendingMessages = await prisma.message.findMany({
+          where: {
+            status: "SENT",
+            senderId: { not: userId },
+            chat: {
+              participants: {
+                some: { userId },
+              },
+            },
+          },
+          select: { id: true, senderId: true },
+        });
+
+        if (pendingMessages.length > 0) {
+          const messageIds = pendingMessages.map((m) => m.id);
+          await prisma.message.updateMany({
+            where: { id: { in: messageIds } },
+            data: { status: "DELIVERED", deliveredAt: new Date() },
+          });
+
+          for (const msg of pendingMessages) {
+            const senderSocketId = onlineUsers.get(msg.senderId);
+            if (senderSocketId) {
+              io.to(senderSocketId).emit("message:delivered", {
+                messageId: msg.id,
+                deliveredAt: new Date(),
+              });
+            }
+          }
+        }
+
+        devLog(
           `✅ User ${userId} connected. Online users: ${onlineUsers.size}`
         );
       } catch (error) {
-        console.error("Error in user:connect:", error);
+        devError("Error in user:connect:", error);
         socket.emit("error", { message: "Failed to connect" });
       }
     });
 
     // ============================================
-    // JOIN CHAT ROOM
+    // JOIN CHAT ROOM (verified participant only)
     // ============================================
-    socket.on("chat:join", (chatId: string) => {
-      socket.join(`chat:${chatId}`);
-      console.log(`👥 Socket ${socket.id} joined chat:${chatId}`);
+    socket.on("chat:join", async (chatId: string) => {
+      try {
+        const userId = socket.data.userId;
+        if (!userId) return;
+
+        const participant = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId },
+        });
+
+        if (!participant) {
+          socket.emit("error", { message: "Not a participant in this chat" });
+          return;
+        }
+
+        socket.join(`chat:${chatId}`);
+        devLog(`👥 Socket ${socket.id} joined chat:${chatId}`);
+      } catch (error) {
+        devError("Error in chat:join:", error);
+        socket.emit("error", { message: "Failed to join chat" });
+      }
     });
 
     // ============================================
@@ -115,7 +165,7 @@ export function setupSocket(io: TypedServer): void {
     // ============================================
     socket.on("chat:leave", (chatId: string) => {
       socket.leave(`chat:${chatId}`);
-      console.log(`👋 Socket ${socket.id} left chat:${chatId}`);
+      devLog(`👋 Socket ${socket.id} left chat:${chatId}`);
     });
 
     // ============================================
@@ -181,14 +231,25 @@ export function setupSocket(io: TypedServer): void {
           }
         }
 
-        // Save message to database
+        if (replyToId) {
+          const replyMsg = await prisma.message.findFirst({
+            where: { id: replyToId, chatId },
+          });
+          if (!replyMsg) {
+            if (typeof callback === "function") {
+              callback({ success: false, error: "Reply message not found in this chat" });
+            }
+            return;
+          }
+        }
+
         const message = await prisma.message.create({
           data: {
             content,
             type,
             senderId,
             chatId,
-            replyToId,
+            replyToId: replyToId || null,
           },
           include: {
             sender: {
@@ -236,9 +297,9 @@ export function setupSocket(io: TypedServer): void {
           });
         }
 
-        console.log(`📨 Message sent in chat:${chatId}`);
+        devLog(`📨 Message sent in chat:${chatId}`);
       } catch (error) {
-        console.error("Error sending message:", error);
+        devError("Error sending message:", error);
         if (typeof callback === "function") {
           callback({ success: false, error: "Failed to send message" });
         }
@@ -248,25 +309,54 @@ export function setupSocket(io: TypedServer): void {
     // ============================================
     // TYPING INDICATORS
     // ============================================
-    socket.on("typing:start", (chatId: string) => {
-      const userId = socket.data.userId;
-      if (userId) {
+    socket.on("typing:start", async (chatId: string) => {
+      try {
+        const userId = socket.data.userId;
+        if (!userId) return;
+        const participant = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId },
+        });
+        if (!participant) return;
         socket.to(`chat:${chatId}`).emit("typing:start", { chatId, userId });
+      } catch (error) {
+        devError("Error in typing:start:", error);
       }
     });
 
-    socket.on("typing:stop", (chatId: string) => {
-      const userId = socket.data.userId;
-      if (userId) {
+    socket.on("typing:stop", async (chatId: string) => {
+      try {
+        const userId = socket.data.userId;
+        if (!userId) return;
+        const participant = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId },
+        });
+        if (!participant) return;
         socket.to(`chat:${chatId}`).emit("typing:stop", { chatId, userId });
+      } catch (error) {
+        devError("Error in typing:stop:", error);
       }
     });
 
     // ============================================
-    // MESSAGE DELIVERED
+    // MESSAGE DELIVERED (only the recipient can mark)
     // ============================================
     socket.on("message:delivered", async (messageId: string) => {
       try {
+        const userId = socket.data.userId;
+        if (!userId) return;
+
+        const existing = await prisma.message.findUnique({
+          where: { id: messageId },
+        });
+
+        if (!existing || existing.senderId === userId) return;
+        if (existing.status !== "SENT") return;
+
+        const participant = await prisma.chatParticipant.findFirst({
+          where: { chatId: existing.chatId, userId },
+        });
+        if (!participant) return;
+
         const message = await prisma.message.update({
           where: { id: messageId },
           data: {
@@ -275,7 +365,6 @@ export function setupSocket(io: TypedServer): void {
           },
         });
 
-        // Notify sender
         const senderSocketId = onlineUsers.get(message.senderId);
         if (senderSocketId) {
           io.to(senderSocketId).emit("message:delivered", {
@@ -284,15 +373,32 @@ export function setupSocket(io: TypedServer): void {
           });
         }
       } catch (error) {
-        console.error("Error updating delivery status:", error);
+        devError("Error updating delivery status:", error);
       }
     });
 
     // ============================================
-    // MESSAGE READ
+    // MESSAGE READ (only the recipient can mark)
     // ============================================
     socket.on("message:read", async ({ messageId, chatId }) => {
       try {
+        const userId = socket.data.userId;
+        if (!userId) return;
+
+        const existing = await prisma.message.findUnique({
+          where: { id: messageId },
+        });
+
+        if (!existing || existing.senderId === userId) return;
+        if (existing.chatId !== chatId) return;
+
+        const participant = await prisma.chatParticipant.findFirst({
+          where: { chatId: existing.chatId, userId },
+        });
+        if (!participant) return;
+
+        if (existing.status === "READ") return;
+
         const message = await prisma.message.update({
           where: { id: messageId },
           data: {
@@ -301,7 +407,6 @@ export function setupSocket(io: TypedServer): void {
           },
         });
 
-        // Notify sender about read receipt
         const senderSocketId = onlineUsers.get(message.senderId);
         if (senderSocketId) {
           io.to(senderSocketId).emit("message:read", {
@@ -310,7 +415,7 @@ export function setupSocket(io: TypedServer): void {
           });
         }
       } catch (error) {
-        console.error("Error updating read status:", error);
+        devError("Error updating read status:", error);
       }
     });
 
@@ -333,7 +438,7 @@ export function setupSocket(io: TypedServer): void {
             },
           });
         } catch (error) {
-          console.error("Error updating user offline status:", error);
+          devError("Error updating user offline status:", error);
         }
 
         // Broadcast to all
@@ -342,7 +447,7 @@ export function setupSocket(io: TypedServer): void {
           lastSeen: new Date(),
         });
 
-        console.log(
+        devLog(
           `❌ User ${userId} disconnected. Online users: ${onlineUsers.size}`
         );
       }
@@ -378,12 +483,20 @@ export function setupSocket(io: TypedServer): void {
           return;
         }
 
-        // Delete message (soft delete)
+        if (message.chatId !== chatId) {
+          socket.emit("error", { message: "Message not found in this chat" });
+          return;
+        }
+
         await prisma.message.update({
           where: { id: messageId },
           data: {
             content: "This message was deleted",
             status: "SENT",
+            mediaUrl: null,
+            fileName: null,
+            fileSize: null,
+            mimeType: null,
           },
         });
 
@@ -394,53 +507,112 @@ export function setupSocket(io: TypedServer): void {
           deletedBy: userId,
         });
 
-        console.log(`🗑️ Message ${messageId} deleted in chat:${chatId}`);
+        devLog(`🗑️ Message ${messageId} deleted in chat:${chatId}`);
       } catch (error) {
-        console.error("Error deleting message:", error);
+        devError("Error deleting message:", error);
         socket.emit("error", { message: "Failed to delete message" });
       }
     });
 
     // ============================================
-    // GROUP OPERATIONS
+    // GROUP OPERATIONS (participant-verified)
     // ============================================
-    socket.on("group:created", (data) => {
-      const { chatId, participants } = data;
-      // Notify all participants
-      participants.forEach((userId: string) => {
+    socket.on("group:created", async (data) => {
+      try {
+        const emitterId = socket.data.userId;
+        if (!emitterId) return;
+
+        const { chatId, participants } = data;
+
+        const isParticipant = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId: emitterId },
+        });
+        if (!isParticipant) return;
+
+        participants.forEach((userId: string) => {
+          const socketId = onlineUsers.get(userId);
+          if (socketId) {
+            io.to(socketId).emit("group:created", data);
+          }
+        });
+      } catch (error) {
+        devError("Error in group:created:", error);
+        socket.emit("error", { message: "Failed to process group creation" });
+      }
+    });
+
+    socket.on("group:updated", async (data) => {
+      try {
+        const emitterId = socket.data.userId;
+        if (!emitterId) return;
+
+        const { chatId } = data;
+
+        const isAdmin = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId: emitterId, role: "ADMIN" },
+        });
+        if (!isAdmin) {
+          socket.emit("error", { message: "Only admins can update group info" });
+          return;
+        }
+
+        io.to(`chat:${chatId}`).emit("group:updated", data);
+      } catch (error) {
+        devError("Error in group:updated:", error);
+        socket.emit("error", { message: "Failed to update group" });
+      }
+    });
+
+    socket.on("group:user-added", async (data) => {
+      try {
+        const emitterId = socket.data.userId;
+        if (!emitterId) return;
+
+        const { chatId, userId } = data;
+
+        const isAdmin = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId: emitterId, role: "ADMIN" },
+        });
+        if (!isAdmin) {
+          socket.emit("error", { message: "Only admins can add users" });
+          return;
+        }
+
         const socketId = onlineUsers.get(userId);
         if (socketId) {
-          io.to(socketId).emit("group:created", data);
+          io.to(socketId).emit("group:user-added", data);
         }
-      });
-    });
-
-    socket.on("group:updated", (data) => {
-      const { chatId } = data;
-      // Broadcast to all in chat room
-      io.to(`chat:${chatId}`).emit("group:updated", data);
-    });
-
-    socket.on("group:user-added", (data) => {
-      const { chatId, userId } = data;
-      // Notify the added user
-      const socketId = onlineUsers.get(userId);
-      if (socketId) {
-        io.to(socketId).emit("group:user-added", data);
+        io.to(`chat:${chatId}`).emit("group:user-added", data);
+      } catch (error) {
+        devError("Error in group:user-added:", error);
+        socket.emit("error", { message: "Failed to add user to group" });
       }
-      // Broadcast to all in chat room
-      io.to(`chat:${chatId}`).emit("group:user-added", data);
     });
 
-    socket.on("group:user-removed", (data) => {
-      const { chatId, userId } = data;
-      // Notify the removed user
-      const socketId = onlineUsers.get(userId);
-      if (socketId) {
-        io.to(socketId).emit("group:user-removed", data);
+    socket.on("group:user-removed", async (data) => {
+      try {
+        const emitterId = socket.data.userId;
+        if (!emitterId) return;
+
+        const { chatId, userId } = data;
+
+        const isAdmin = await prisma.chatParticipant.findFirst({
+          where: { chatId, userId: emitterId, role: "ADMIN" },
+        });
+        if (!isAdmin) {
+          socket.emit("error", { message: "Only admins can remove users" });
+          return;
+        }
+
+        const socketId = onlineUsers.get(userId);
+        if (socketId) {
+          io.to(socketId).emit("group:user-removed", data);
+        }
+        io.to(`chat:${chatId}`).emit("group:user-removed", data);
+      } catch (error) {
+        devError("Error in group:user-removed:", error);
+        socket.emit("error", { message: "Failed to remove user from group" });
       }
-      // Broadcast to all in chat room
-      io.to(`chat:${chatId}`).emit("group:user-removed", data);
     });
   });
 }

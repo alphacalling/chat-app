@@ -5,6 +5,7 @@ import {
   verifyBackupCode,
   generateQRCode,
 } from "../utils/totp.js";
+import { encrypt, decrypt, isEncrypted } from "../utils/encryption.js";
 
 export class TOTPService {
   /**
@@ -31,12 +32,11 @@ export class TOTPService {
     );
     const qrCode = await generateQRCode(config.qrCodeUrl);
 
-    // Store secret and backup codes
     await prisma.user.update({
       where: { id: userId },
       data: {
-        totpSecret: config.secret,
-        totpBackupCodes: config.backupCodes.join(","),
+        totpSecret: encrypt(config.secret),
+        totpBackupCodes: encrypt(config.backupCodes.join(",")),
       },
     });
 
@@ -59,25 +59,41 @@ export class TOTPService {
       throw new Error("TOTP secret not found. Please generate it first.");
     }
 
-    const isValid =
-      verifyTOTP(token, user.totpSecret) ||
-      (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
+    const secret = isEncrypted(user.totpSecret)
+      ? decrypt(user.totpSecret)
+      : user.totpSecret;
+
+    const backupCodes =
+      user.totpBackupCodes && isEncrypted(user.totpBackupCodes)
+        ? decrypt(user.totpBackupCodes)
+        : user.totpBackupCodes;
+
+    let isValid = verifyTOTP(token, secret);
+    let updatedBackupCodes: string | null = null;
+
+    if (!isValid && backupCodes) {
+      const result = verifyBackupCode(token, backupCodes);
+      isValid = result.valid;
+      if (result.valid) {
+        updatedBackupCodes = result.remainingCodes;
+      }
+    }
 
     if (!isValid) {
       throw new Error("Invalid TOTP token");
     }
 
+    const updateData: any = { totpEnabled: true };
+    if (updatedBackupCodes !== null) {
+      updateData.totpBackupCodes = encrypt(updatedBackupCodes);
+    }
+
     await prisma.user.update({
       where: { id: userId },
-      data: {
-        totpEnabled: true,
-      },
+      data: updateData,
     });
   }
 
-  /**
-   * Disable TOTP for a user
-   */
   async disableTOTP(userId: string, token: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -91,9 +107,20 @@ export class TOTPService {
       throw new Error("TOTP secret not found");
     }
 
-    const isValid =
-      verifyTOTP(token, user.totpSecret) ||
-      (user.totpBackupCodes && verifyBackupCode(token, user.totpBackupCodes));
+    const secret = isEncrypted(user.totpSecret)
+      ? decrypt(user.totpSecret)
+      : user.totpSecret;
+
+    const backupCodes =
+      user.totpBackupCodes && isEncrypted(user.totpBackupCodes)
+        ? decrypt(user.totpBackupCodes)
+        : user.totpBackupCodes;
+
+    let isValid = verifyTOTP(token, secret);
+    if (!isValid && backupCodes) {
+      const result = verifyBackupCode(token, backupCodes);
+      isValid = result.valid;
+    }
 
     if (!isValid) {
       throw new Error("Invalid TOTP token");
@@ -109,9 +136,6 @@ export class TOTPService {
     });
   }
 
-  /**
-   * Verify TOTP during login
-   */
   async verifyTOTPLogin(userId: string, token: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -121,12 +145,31 @@ export class TOTPService {
       return false;
     }
 
-    return (
-      verifyTOTP(token, user.totpSecret) ||
-      (user.totpBackupCodes
-        ? verifyBackupCode(token, user.totpBackupCodes)
-        : false)
-    );
+    const secret = isEncrypted(user.totpSecret)
+      ? decrypt(user.totpSecret)
+      : user.totpSecret;
+
+    const backupCodes =
+      user.totpBackupCodes && isEncrypted(user.totpBackupCodes)
+        ? decrypt(user.totpBackupCodes)
+        : user.totpBackupCodes;
+
+    if (verifyTOTP(token, secret)) {
+      return true;
+    }
+
+    if (backupCodes) {
+      const result = verifyBackupCode(token, backupCodes);
+      if (result.valid) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { totpBackupCodes: encrypt(result.remainingCodes) },
+        });
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

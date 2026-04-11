@@ -17,6 +17,7 @@ export interface IUser {
 // Socket Events - Server to Client
 export interface ServerToClientEvents {
   "user:online": (userId: string) => void;
+  "user:online-list": (userIds: string[]) => void;
   "user:offline": (data: { userId: string; lastSeen: Date }) => void;
   "message:new": (message: IMessage) => void;
   "message:delivered": (data: { messageId: string; deliveredAt: Date }) => void;

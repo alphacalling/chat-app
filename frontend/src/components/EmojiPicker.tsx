@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { devError } from "../utils/devLog";
 import {
   Smile,
   X,
@@ -756,7 +757,7 @@ const EmojiPicker = ({
         return JSON.parse(stored).slice(0, 20);
       }
     } catch (e) {
-      console.error("Failed to parse recent emojis:", e);
+      devError("Failed to parse recent emojis:", e);
     }
     return [];
   });
@@ -768,7 +769,7 @@ const EmojiPicker = ({
   //       const parsed = JSON.parse(stored);
   //       setRecentEmojis(parsed.slice(0, 20));
   //     } catch (e) {
-  //       console.error("Failed to parse recent emojis:", e);
+  //       devError("Failed to parse recent emojis:", e);
   //     }
   //   }
   // }, []);

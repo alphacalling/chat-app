@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { blockAPI } from "../apis/api";
+import { devError } from "../utils/devLog";
 import { Button } from "./ui/button";
 import { Ban, UserCheck, Shield, ShieldOff } from "lucide-react";
 import {
@@ -46,7 +47,7 @@ export const BlockUserButton = ({
       }
       onBlockChange?.();
     } catch (error: any) {
-      console.error("Failed to block/unblock user:", error);
+      devError("Failed to block/unblock user:", error);
       alert(error.response?.data?.message || "Failed to update block status");
     } finally {
       setLoading(false);
@@ -90,29 +91,32 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
   const [loading, setLoading] = useState(true);
 
   const fetchBlockedUsers = async () => {
+    setLoading(true);
     try {
       const { data } = await blockAPI.getBlockedUsers();
       setBlockedUsers(data.data || []);
     } catch (error) {
-      console.error("Failed to fetch blocked users:", error);
+      devError("Failed to fetch blocked users:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      fetchBlockedUsers();
+    }
+  }, [open]);
 
   const handleUnblock = async (userId: string) => {
     try {
       await blockAPI.unblockUser(userId);
       await fetchBlockedUsers();
     } catch (error: any) {
-      console.error("Failed to unblock user:", error);
+      devError("Failed to unblock user:", error);
       alert(error.response?.data?.message || "Failed to unblock user");
     }
   };
-
-  if (open) {
-    fetchBlockedUsers();
-  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -150,7 +154,7 @@ export const BlockedUsersList = ({ open, onClose }: BlockedUsersListProps) => {
                   <Avatar className="h-12 w-12 ring-2 ring-gray-200 group-hover:ring-slate-400 transition-all duration-300">
                     <AvatarImage src={user.avatar || undefined} />
                     <AvatarFallback className="bg-red-500 text-white font-semibold">
-                      {user.name[0].toUpperCase()}
+                      {(user.name?.[0] || "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">

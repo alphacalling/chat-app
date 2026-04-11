@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { authAPI } from "../apis/api";
+import { devLog, devError } from "../utils/devLog";
 import {
   Users,
   Search,
@@ -32,7 +33,7 @@ const CreateGroupModal = ({
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  console.log("CreateGroupModal state:", {
+  devLog("CreateGroupModal state:", {
     groupName: groupName.trim(),
     groupNameLength: groupName.trim().length,
     selectedUsersCount: selectedUsers.length,
@@ -49,26 +50,26 @@ const CreateGroupModal = ({
       const { data } = await authAPI.searchUsers(search);
       setSearchResults(data.data || []);
     } catch (error) {
-      console.error("Error searching users", error);
+      devError("Error searching users", error);
     } finally {
       setLoading(false);
     }
   };
 
   const toggleUser = (user: User) => {
-    console.log("Toggle user:", user.name);
+    devLog("Toggle user:", user.name);
     setSelectedUsers((prev) => {
       const exists = prev.find((u) => u.id === user.id);
       if (exists) {
         const newList = prev.filter((u) => u.id !== user.id);
-        console.log(
+        devLog(
           "User removed. New list:",
           newList.map((u) => u.name),
         );
         return newList;
       }
       const newList = [...prev, user];
-      console.log(
+      devLog(
         "User added. New list:",
         newList.map((u) => u.name),
       );
@@ -92,7 +93,7 @@ const CreateGroupModal = ({
       onGroupCreated(data.data);
       onClose();
     } catch (error) {
-      console.error("Error creating group", error);
+      devError("Error creating group", error);
       alert("Failed to create group");
     } finally {
       setCreating(false);
@@ -136,7 +137,7 @@ const CreateGroupModal = ({
             placeholder="Enter group name..."
             value={groupName}
             onChange={(e) => {
-              console.log("Group name changed:", e.target.value);
+              devLog("Group name changed:", e.target.value);
               setGroupName(e.target.value);
             }}
             autoFocus
@@ -159,7 +160,7 @@ const CreateGroupModal = ({
                   className="bg-slate-700 text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg animate-in zoom-in duration-300"
                 >
                   <div className="w-6 h-6 bg-slate-600 rounded-full flex items-center justify-center text-xs font-bold">
-                    {user.name[0].toUpperCase()}
+                    {(user.name?.[0] || "?").toUpperCase()}
                   </div>
                   <span className="font-semibold">{user.name}</span>
                   <button
@@ -228,7 +229,7 @@ const CreateGroupModal = ({
                       isSelected ? "bg-emerald-600" : "bg-gray-500"
                     }`}
                   >
-                    {user.name[0].toUpperCase()}
+                    {(user.name?.[0] || "?").toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-gray-800 font-bold truncate">

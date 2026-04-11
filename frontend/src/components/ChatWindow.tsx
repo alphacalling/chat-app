@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { devError } from "../utils/devLog";
 import {
   Phone,
   Video,
@@ -82,6 +83,7 @@ const ChatWindow = ({
   const [reactionNotification, setReactionNotification] = useState<
     string | null
   >(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const { socket, isConnected, onlineUsers } = useSocketContext();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -112,25 +114,33 @@ const ChatWindow = ({
 
   useEffect(() => {
     if (!selectedChat) return;
+    setMessages([]);
+    setPinnedMessage(null);
+    let cancelled = false;
 
     const fetchMessages = async () => {
       try {
         setLoading(true);
         const { data } = await messageAPI.getMessages(selectedChat.id);
+        if (cancelled) return;
         setMessages(data.data || []);
 
         try {
           const pinnedData = await messageAPI.getPinnedMessage(selectedChat.id);
-          if (pinnedData.data) {
+          if (!cancelled && pinnedData.data) {
             setPinnedMessage(pinnedData.data);
           }
         } catch (error) {
           // No pinned message
         }
       } catch (error) {
-        console.error("Failed to fetch messages:", error);
+        if (!cancelled) {
+          devError("Failed to fetch messages:", error);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
@@ -141,6 +151,7 @@ const ChatWindow = ({
     }
 
     return () => {
+      cancelled = true;
       if (socket && selectedChat.id) {
         socket.emit("chat:leave", selectedChat.id);
       }
@@ -166,14 +177,12 @@ const ChatWindow = ({
           return [...prev, newMessage];
         });
 
+        // Delivery is handled globally in SocketProvider; mark as read since this chat is open
         if (newMessage.senderId !== user?.id) {
-          socket.emit("message:delivered", newMessage.id);
-          setTimeout(() => {
-            socket.emit("message:read", {
-              messageId: newMessage.id,
-              chatId: selectedChat.id,
-            });
-          }, 1000);
+          socket.emit("message:read", {
+            messageId: newMessage.id,
+            chatId: selectedChat.id,
+          });
         }
       }
     };
@@ -315,7 +324,9 @@ const ChatWindow = ({
       });
       setReplyingTo(null);
     } catch (error) {
-      console.error("Failed to send message:", error);
+      devError("Failed to send message:", error);
+      setSendError("Failed to send message. Please try again.");
+      setTimeout(() => setSendError(null), 4000);
     }
   };
 
@@ -335,10 +346,9 @@ const ChatWindow = ({
         return [...prev, newMessage];
       });
     } catch (error: any) {
-      console.error("Failed to send media:", error);
-      alert(
-        `Failed to send file: ${error.response?.data?.message || error.message}`,
-      );
+      devError("Failed to send media:", error);
+      setSendError("Failed to send file. Please try again.");
+      setTimeout(() => setSendError(null), 4000);
     }
   };
 
@@ -353,7 +363,7 @@ const ChatWindow = ({
         ),
       );
     } catch (error) {
-      console.error("Failed to delete message:", error);
+      devError("Failed to delete message:", error);
     }
   };
 
@@ -636,6 +646,12 @@ const ChatWindow = ({
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+      )}
+
+      {sendError && (
+        <div className="px-4 py-2 bg-red-50 border-t border-red-200">
+          <p className="text-red-600 text-sm text-center">{sendError}</p>
         </div>
       )}
 

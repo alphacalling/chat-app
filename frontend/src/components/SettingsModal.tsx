@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { totpAPI, authAPI } from "../apis/api";
+import { devLog, devError } from "../utils/devLog";
 import { useAuth } from "../context/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -70,7 +71,7 @@ const SettingsModal = ({
       setQrCode(data.data.qrCode);
       setBackupCodes(data.data.backupCodes);
     } catch (error) {
-      console.error("Failed to generate TOTP:", error);
+      devError("Failed to generate TOTP:", error);
       alert("Failed to generate TOTP");
     }
   };
@@ -89,7 +90,7 @@ const SettingsModal = ({
       setBackupCodes([]);
       alert("TOTP enabled successfully!");
     } catch (error: any) {
-      console.error("Failed to enable TOTP:", error);
+      devError("Failed to enable TOTP:", error);
       alert(error.response?.data?.message || "Failed to enable TOTP");
     }
   };
@@ -105,7 +106,7 @@ const SettingsModal = ({
       setTotpToken("");
       alert("TOTP disabled successfully!");
     } catch (error: any) {
-      console.error("Failed to disable TOTP:", error);
+      devError("Failed to disable TOTP:", error);
       alert(error.response?.data?.message || "Failed to disable TOTP");
     }
   };
@@ -122,9 +123,9 @@ const SettingsModal = ({
 
     try {
       setUploadingAvatar(true);
-      console.log("Uploading user avatar:", file.name);
+      devLog("Uploading user avatar:", file.name);
       const { data } = await authAPI.uploadAvatar(file);
-      console.log("Avatar uploaded successfully:", data);
+      devLog("Avatar uploaded successfully:", data);
       const updatedUser = data?.data?.user ?? data?.user;
       if (updatedUser?.avatar != null && updateUser) {
         updateUser({ avatar: updatedUser.avatar });
@@ -134,7 +135,7 @@ const SettingsModal = ({
       }
       alert("Avatar updated successfully!");
     } catch (error: any) {
-      console.error("Error uploading avatar:", error);
+      devError("Error uploading avatar:", error);
       alert(error.response?.data?.message || "Failed to upload avatar");
     } finally {
       setUploadingAvatar(false);
@@ -160,7 +161,7 @@ const SettingsModal = ({
       }
       alert("Profile updated successfully!");
     } catch (error: any) {
-      console.error("Failed to update profile:", error);
+      devError("Failed to update profile:", error);
       alert(error.response?.data?.message || "Failed to update profile");
     } finally {
       setSavingProfile(false);

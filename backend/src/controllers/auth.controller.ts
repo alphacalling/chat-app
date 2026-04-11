@@ -4,11 +4,14 @@ import {
   registerSchema,
   loginSchema,
   refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { prisma } from "../configs/database.js";
 import { getFullFileUrl } from "../utils/fileUpload.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { devLog, devError } from "../utils/devLog.js";
 
 export class AuthController {
   //* register user
@@ -111,6 +114,70 @@ export class AuthController {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
       res.status(401).json({
+        success: false,
+        message,
+      } as ApiResponse);
+    }
+  }
+
+  //* forgot password — check if TOTP is available
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const validationResult = forgotPasswordSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: validationResult.error.issues[0].message,
+        } as ApiResponse);
+        return;
+      }
+
+      const result = await authService.forgotPassword(
+        validationResult.data.phone
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "TOTP verification required to reset password",
+        data: result,
+      } as ApiResponse);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Forgot password failed";
+      res.status(400).json({
+        success: false,
+        message,
+      } as ApiResponse);
+    }
+  }
+
+  //* reset password — verify TOTP + set new password
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const validationResult = resetPasswordSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: validationResult.error.issues[0].message,
+        } as ApiResponse);
+        return;
+      }
+
+      const { phone, totpToken, newPassword } = validationResult.data;
+      await authService.resetPassword(phone, totpToken, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: "Password reset successful. Please log in with your new password.",
+      } as ApiResponse);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Password reset failed";
+      res.status(400).json({
         success: false,
         message,
       } as ApiResponse);
@@ -240,8 +307,9 @@ export class AuthController {
       }
 
       // Clear httpOnly cookies
-      res.clearCookie("accessToken", { path: "/" });
-      res.clearCookie("refreshToken", { path: "/" });
+      const cookieOpts = { path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" as const };
+      res.clearCookie("accessToken", cookieOpts);
+      res.clearCookie("refreshToken", cookieOpts);
 
       res.status(200).json({
         success: true,
@@ -290,7 +358,7 @@ export class AuthController {
   async getUserProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        console.error("No authenticated user");
+        devError("No authenticated user");
         res.status(401).json({
           success: false,
           message: "Not authenticated",
@@ -301,7 +369,7 @@ export class AuthController {
       const { userId } = req.params;
 
       if (!userId) {
-        console.error("No userId in params");
+        devError("No userId in params");
         res.status(400).json({
           success: false,
           message: "User ID is required",
@@ -309,28 +377,28 @@ export class AuthController {
         return;
       }
 
-      console.log("About to call authService.getUserProfile");
-      console.log("userId:", userId, "requesterId:", req.user.id);
+      devLog("About to call authService.getUserProfile");
+      devLog("userId:", userId, "requesterId:", req.user.id);
 
       const user = await authService.getUserProfile(userId, req.user.id);
 
-      console.log("Profile fetched successfully, sending response");
+      devLog("Profile fetched successfully, sending response");
       res.status(200).json({
         success: true,
         message: "User profile fetched",
         data: user,
       } as ApiResponse);
     } catch (error) {
-      console.error(" Error in getUserProfile controller:", error);
-      console.error(
+      devError(" Error in getUserProfile controller:", error);
+      devError(
         "Error type:",
         error instanceof Error ? error.constructor.name : typeof error,
       );
-      console.error(
+      devError(
         "Error message:",
         error instanceof Error ? error.message : String(error),
       );
-      console.error("Full error:", JSON.stringify(error, null, 2));
+      devError("Full error:", JSON.stringify(error, null, 2));
 
       const message =
         error instanceof Error ? error.message : "Failed to fetch user profile";
@@ -341,7 +409,7 @@ export class AuthController {
           ? 400
           : 500;
 
-      console.log(
+      devLog(
         "Sending error response with status:",
         statusCode,
         "message:",

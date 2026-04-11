@@ -42,11 +42,12 @@ import { getUploadsDir } from "./utils/paths.js";
 validateEnvironment();
 
 // Constants
-const PORT = parseInt(process.env.PORT || "5000", 10);
+const PORT = parseInt(process.env.PORT || "8080", 10);
 const CLIENT_URL = process.env.CLIENT_URL!;
 
 // Initialize Express
 const app: Express = express();
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 //Initialize Socket.IO
@@ -148,12 +149,19 @@ app.use((req: Request, res: Response) => {
 
 // ─── Error Handler ──────
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  const sanitizedBody = req.body ? { ...req.body } : undefined;
+  if (sanitizedBody) {
+    for (const key of ["password", "newPassword", "totpToken", "totpSecret", "refreshToken", "token"]) {
+      if (key in sanitizedBody) sanitizedBody[key] = "[REDACTED]";
+    }
+  }
+
   logger.error(
     {
       err,
       method: req.method,
       url: req.url,
-      body: req.body,
+      body: sanitizedBody,
     },
     "Unhandled error"
   );
@@ -198,17 +206,16 @@ async function startServer(): Promise<void> {
 async function gracefulShutdown(signal: string): Promise<void> {
   logger.info({ signal }, "Shutdown signal received");
 
-  // 1. Stop accepting new connections
-  httpServer.close(() => {
-    logger.info("HTTP server closed");
+  await new Promise<void>((resolve) => {
+    io.close(() => resolve());
   });
+  logger.info("Socket.IO closed");
 
-  // 2. Close all socket connections
-  io.close(() => {
-    logger.info("Socket.IO closed");
+  await new Promise<void>((resolve) => {
+    httpServer.close(() => resolve());
   });
+  logger.info("HTTP server closed");
 
-  // 3. Disconnect database and close pool
   await disconnectDatabase();
 
   logger.info("Graceful shutdown complete");
@@ -226,8 +233,7 @@ process.on("uncaughtException", (err) => {
 });
 
 process.on("unhandledRejection", (reason) => {
-  logger.fatal({ err: reason }, "Unhandled promise rejection — shutting down");
-  process.exit(1);
+  logger.error({ err: reason }, "Unhandled promise rejection");
 });
 
 // ─── Start ─────

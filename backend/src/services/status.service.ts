@@ -167,103 +167,146 @@ export class StatusService {
   }
 
   /**
+   * Get contact IDs (users sharing a chat with the given user)
+   */
+  async getContactIds(userId: string): Promise<string[]> {
+    const userChats = await prisma.chatParticipant.findMany({
+      where: { userId },
+      select: { chatId: true },
+    });
+    const chatIds = userChats.map((cp) => cp.chatId);
+
+    const participants = await prisma.chatParticipant.findMany({
+      where: {
+        chatId: { in: chatIds },
+        userId: { not: userId },
+      },
+      select: { userId: true },
+    });
+
+    return [...new Set(participants.map((p) => p.userId))];
+  }
+
+  /**
+   * Check if viewer is a contact of the status owner
+   */
+  private async isContact(statusOwnerId: string, viewerId: string): Promise<boolean> {
+    const sharedChat = await prisma.chat.findFirst({
+      where: {
+        participants: {
+          every: {
+            userId: { in: [statusOwnerId, viewerId] },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    return !!sharedChat;
+  }
+
+  /**
    * View a status
    */
   async viewStatus(statusId: string, userId: string) {
-    // Check if already viewed
+    const status = await prisma.status.findUnique({
+      where: { id: statusId },
+      select: { userId: true },
+    });
+
+    if (!status) throw new Error("Status not found");
+    if (status.userId !== userId) {
+      const contact = await this.isContact(status.userId, userId);
+      if (!contact) throw new Error("Status not found");
+    }
+
     const existingView = await prisma.statusView.findUnique({
       where: {
-        statusId_userId: {
-          statusId,
-          userId,
-        },
+        statusId_userId: { statusId, userId },
       },
     });
 
     if (existingView) {
-      return existingView;
+      return { ...existingView, status };
     }
 
-    // Create view
     const view = await prisma.statusView.create({
-      data: {
-        statusId,
-        userId,
-      },
+      data: { statusId, userId },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
+          select: { id: true, name: true, avatar: true },
         },
       },
     });
 
-    return view;
+    return { ...view, status };
   }
 
   /**
    * Add reaction to status
    */
   async addReaction(statusId: string, userId: string, emoji: string) {
-    // Check if reaction already exists
+    const status = await prisma.status.findUnique({
+      where: { id: statusId },
+      select: { userId: true },
+    });
+
+    if (!status) throw new Error("Status not found");
+    if (status.userId !== userId) {
+      const contact = await this.isContact(status.userId, userId);
+      if (!contact) throw new Error("Status not found");
+    }
+
     const existing = await prisma.statusReaction.findUnique({
       where: {
-        statusId_userId: {
-          statusId,
-          userId,
-        },
+        statusId_userId: { statusId, userId },
       },
     });
 
     if (existing) {
-      // Update existing reaction
-      return await prisma.statusReaction.update({
+      const updated = await prisma.statusReaction.update({
         where: { id: existing.id },
         data: { emoji },
         include: {
           user: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-            },
+            select: { id: true, name: true, avatar: true },
           },
         },
       });
+      return { ...updated, status };
     }
 
-    // Create new reaction
-    return await prisma.statusReaction.create({
-      data: {
-        statusId,
-        userId,
-        emoji,
-      },
+    const reaction = await prisma.statusReaction.create({
+      data: { statusId, userId, emoji },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
+          select: { id: true, name: true, avatar: true },
         },
       },
     });
+
+    return { ...reaction, status };
   }
 
   /**
    * Remove reaction from status
    */
   async removeReaction(statusId: string, userId: string) {
-    await prisma.statusReaction.deleteMany({
-      where: {
-        statusId,
-        userId,
-      },
+    const status = await prisma.status.findUnique({
+      where: { id: statusId },
+      select: { userId: true },
     });
+
+    if (!status) throw new Error("Status not found");
+    if (status.userId !== userId) {
+      const contact = await this.isContact(status.userId, userId);
+      if (!contact) throw new Error("Status not found");
+    }
+
+    await prisma.statusReaction.deleteMany({
+      where: { statusId, userId },
+    });
+
+    return status;
   }
 
   /**

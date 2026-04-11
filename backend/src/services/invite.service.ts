@@ -104,7 +104,6 @@ export class InviteService {
       throw new Error("Invite link has reached maximum uses");
     }
 
-    // Check if user is already in the group
     const alreadyMember = inviteLink.chat.participants.some(
       (p) => p.userId === userId
     );
@@ -112,20 +111,19 @@ export class InviteService {
       throw new Error("You are already a member of this group");
     }
 
-    // Add user to group
-    await prisma.chatParticipant.create({
-      data: {
-        chatId: inviteLink.chatId,
-        userId,
-        role: "MEMBER",
-      },
-    });
-
-    // Increment use count
-    await prisma.inviteLink.update({
-      where: { id: inviteLink.id },
-      data: { useCount: inviteLink.useCount + 1 },
-    });
+    await prisma.$transaction([
+      prisma.chatParticipant.create({
+        data: {
+          chatId: inviteLink.chatId,
+          userId,
+          role: "MEMBER",
+        },
+      }),
+      prisma.inviteLink.update({
+        where: { id: inviteLink.id },
+        data: { useCount: { increment: 1 } },
+      }),
+    ]);
 
     // Get updated chat
     const chat = await prisma.chat.findUnique({

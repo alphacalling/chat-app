@@ -199,6 +199,7 @@ export class ChatService {
         avatar: p.user.avatar ? getFullFileUrl(p.user.avatar) : null,
         isOnline: p.user.isOnline,
         lastSeen: p.user.lastSeen,
+        role: p.role,
       })),
       // Format latest message
       latestMessage: latestMessage

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { statusAPI } from "../apis/api";
+import { devError } from "../utils/devLog";
 import { useAuth } from "../context/useAuth";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -78,7 +79,7 @@ const StatusViewer = ({
           await statusAPI.viewStatus(currentStatus.id);
           setViewed(true);
         } catch (error) {
-          console.error("Failed to mark status as viewed:", error);
+          devError("Failed to mark status as viewed:", error);
         }
       };
       markAsViewed();
@@ -129,12 +130,12 @@ const StatusViewer = ({
           }
         }
       } catch (error) {
-        console.error("Failed to refresh status:", error);
+        devError("Failed to refresh status:", error);
       }
 
       setShowEmojiPicker(false);
     } catch (error) {
-      console.error("Failed to add reaction:", error);
+      devError("Failed to add reaction:", error);
     }
   };
 
@@ -146,7 +147,7 @@ const StatusViewer = ({
       await statusAPI.deleteStatus(currentStatus.id);
       onClose();
     } catch (error) {
-      console.error("Failed to delete status:", error);
+      devError("Failed to delete status:", error);
     } finally {
       setDeleting(false);
     }

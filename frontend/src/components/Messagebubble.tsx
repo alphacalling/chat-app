@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { useState } from "react";
+import { devError } from "../utils/devLog";
 import MessageContextMenu from "./MessageContextMenu";
 import EmojiPicker from "./EmojiPicker";
 import {
@@ -113,7 +114,7 @@ const MessageBubble = ({
       await messageAPI.editMessage(message.id, editContent);
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to edit message:", error);
+      devError("Failed to edit message:", error);
     }
   };
 
@@ -147,7 +148,7 @@ const MessageBubble = ({
       }
       setShowEmojiPicker(false);
     } catch (error) {
-      console.error("Failed to add reaction:", error);
+      devError("Failed to add reaction:", error);
     }
   };
 
@@ -160,7 +161,7 @@ const MessageBubble = ({
         await messageAPI.pinMessage(message.id, chatId);
       }
     } catch (error) {
-      console.error("Failed to pin/unpin message:", error);
+      devError("Failed to pin/unpin message:", error);
     }
   };
 
@@ -352,7 +353,7 @@ const MessageBubble = ({
                               window.open(message.mediaUrl || "", "_blank")
                             }
                             onError={(e) => {
-                              console.error(
+                              devError(
                                 "Failed to load image:",
                                 message.mediaUrl,
                               );
@@ -373,7 +374,7 @@ const MessageBubble = ({
                             controls
                             className="max-w-full rounded-xl shadow-lg"
                             onError={() => {
-                              console.error(
+                              devError(
                                 "Failed to load video:",
                                 message.mediaUrl,
                               );
@@ -395,7 +396,7 @@ const MessageBubble = ({
                             controls
                             className="flex-1 h-10"
                             onError={() => {
-                              console.error(
+                              devError(
                                 "Failed to load audio:",
                                 message.mediaUrl,
                               );

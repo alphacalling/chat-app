@@ -5,6 +5,7 @@ const requiredVars = [
     "CLIENT_URL",
     "JWT_ACCESS_SECRET",
     "JWT_REFRESH_SECRET",
+    "ENCRYPTION_KEY",
   ] as const;
   
   const optionalVars: Record<string, string> = {
@@ -50,6 +51,11 @@ const requiredVars = [
     new URL(process.env.CLIENT_URL!);
   } catch {
     throw new Error("CLIENT_URL is not a valid URL");
+  }
+
+  const encKey = process.env.ENCRYPTION_KEY!;
+  if (encKey.length < 32) {
+    throw new Error("ENCRYPTION_KEY must be at least 32 characters long");
   }
 
   logger.info("Environment validated successfully");

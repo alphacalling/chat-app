@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { chatService } from "../services/chat.service.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { devLog, devError } from "../utils/devLog.js";
 
 export class ChatController {
   //* Access or Create Chat
@@ -103,7 +104,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error("Failed to emit group:created event:", socketError);
+        devError("Failed to emit group:created event:", socketError);
       }
 
       res.status(201).json({
@@ -162,7 +163,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error("Failed to emit group:updated (name) event:", socketError);
+        devError("Failed to emit group:updated (name) event:", socketError);
       }
 
       res.status(200).json({
@@ -221,7 +222,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error("Failed to emit group:user-added event:", socketError);
+        devError("Failed to emit group:user-added event:", socketError);
       }
 
       res.status(200).json({
@@ -280,7 +281,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error("Failed to emit group:user-removed event:", socketError);
+        devError("Failed to emit group:user-removed event:", socketError);
       }
 
       res.status(200).json({
@@ -335,7 +336,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error("Failed to emit group:user-left event:", socketError);
+        devError("Failed to emit group:user-left event:", socketError);
       }
 
       res.status(200).json({
@@ -423,7 +424,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error(
+        devError(
           "Failed to emit group:updated (description) event:",
           socketError
         );
@@ -449,12 +450,12 @@ export class ChatController {
   // Update group avatar
   async updateGroupAvatar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      console.log("🔍 updateGroupAvatar called");
+      devLog("🔍 updateGroupAvatar called");
       const { chatId } = req.params;
-      console.log("🔍 chatId:", chatId);
+      devLog("🔍 chatId:", chatId);
       
       if (!req.user) {
-        console.error("❌ No authenticated user");
+        devError("❌ No authenticated user");
         res.status(401).json({
           success: false,
           message: "Not authenticated",
@@ -463,12 +464,12 @@ export class ChatController {
       }
 
       const file = (req as any).file;
-      console.log("🔍 file:", file ? "exists" : "missing");
+      devLog("🔍 file:", file ? "exists" : "missing");
       
       if (!file) {
-        console.error("No file in request");
-        console.error("Request body:", req.body);
-        console.error("Request headers:", req.headers["content-type"]);
+        devError("No file in request");
+        devError("Request body:", req.body);
+        devError("Request headers:", req.headers["content-type"]);
         res.status(400).json({
           success: false,
           message: "No file uploaded",
@@ -476,7 +477,7 @@ export class ChatController {
         return;
       }
 
-      console.log("file details:", {
+      devLog("file details:", {
         originalname: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
@@ -486,7 +487,7 @@ export class ChatController {
 
       // Validate file properties
       if (!file.originalname) {
-        console.error("No originalname in file");
+        devError("No originalname in file");
         res.status(400).json({
           success: false,
           message: "Invalid file: missing filename",
@@ -495,7 +496,7 @@ export class ChatController {
       }
 
       if (!file.mimetype || !file.mimetype.startsWith("image/")) {
-        console.error("Invalid file type:", file.mimetype);
+        devError("Invalid file type:", file.mimetype);
         res.status(400).json({
           success: false,
           message: "Only image files are allowed",
@@ -504,7 +505,7 @@ export class ChatController {
       }
 
       if (!file.buffer || !Buffer.isBuffer(file.buffer)) {
-        console.error("Invalid file buffer");
+        devError("Invalid file buffer");
         res.status(400).json({
           success: false,
           message: "Invalid file: missing buffer",
@@ -513,21 +514,21 @@ export class ChatController {
       }
 
       // Upload to Cloudinary
-      console.log("Uploading group avatar to Cloudinary...");
+      devLog("Uploading group avatar to Cloudinary...");
       const uploadResult = await uploadToCloudinary(file.buffer, {
         resource_type: "image",
         folder: "chit-chat-group-avatars",
       });
       const fileUrl = uploadResult.secure_url || uploadResult.url;
-      console.log("Cloudinary upload complete, URL:", fileUrl);
+      devLog("Cloudinary upload complete, URL:", fileUrl);
 
-      console.log("Updating group avatar in database...");
+      devLog("Updating group avatar in database...");
       const updated = await chatService.updateGroupAvatar(
         chatId,
         req.user.id,
         fileUrl
       );
-      console.log("Group avatar updated successfully");
+      devLog("Group avatar updated successfully");
 
       // Broadcast avatar change
       try {
@@ -543,7 +544,7 @@ export class ChatController {
           });
         }
       } catch (socketError) {
-        console.error(
+        devError(
           "Failed to emit group:updated (avatar) event:",
           socketError
         );
@@ -555,8 +556,8 @@ export class ChatController {
         data: updated,
       } as ApiResponse);
     } catch (error) {
-      console.error("Error in updateGroupAvatar:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : String(error));
+      devError("Error in updateGroupAvatar:", error);
+      devError("Error stack:", error instanceof Error ? error.stack : String(error));
       const message =
         error instanceof Error ? error.message : "Failed to update group avatar";
       res.status(400).json({

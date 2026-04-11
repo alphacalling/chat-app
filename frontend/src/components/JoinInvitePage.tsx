@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { inviteAPI } from "../apis/api";
 import { useAuth } from "../context/useAuth";
@@ -19,9 +19,11 @@ const JoinInvitePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [inviteCode, setInviteCode] = useState(code || "");
+  const joinAttempted = useRef(false);
 
   useEffect(() => {
-    if (code && user) {
+    if (code && user && !joinAttempted.current) {
+      joinAttempted.current = true;
       handleJoin();
     }
   }, [code, user]);

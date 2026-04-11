@@ -3,6 +3,9 @@ import { statusService } from "../services/status.service.js";
 import { getFullFileUrl } from "../utils/fileUpload.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
+import { devError } from "../utils/devLog.js";
+import { prisma } from "../configs/database.js";
+import { onlineUsers } from "../socket/socket.js";
 
 export class StatusController {
   /**
@@ -31,7 +34,7 @@ export class StatusController {
 
           mediaUrl = uploadResult.secure_url || uploadResult.url;
         } catch (error) {
-          console.error("Error uploading status file to Cloudinary:", error);
+          devError("Error uploading status file to Cloudinary:", error);
           res.status(400).json({
             success: false,
             message: "Failed to upload file",
@@ -47,11 +50,17 @@ export class StatusController {
         type
       );
 
-      // Broadcast new status via socket
+      // Emit new status only to contacts (users sharing a chat)
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io) {
-        io.emit("status:new", status);
+        const contactIds = await statusService.getContactIds(req.user.id);
+        for (const contactId of contactIds) {
+          const socketId = onlineUsers.get(contactId);
+          if (socketId) {
+            io.to(socketId).emit("status:new", status);
+          }
+        }
       }
 
       res.status(201).json({
@@ -177,14 +186,17 @@ export class StatusController {
 
       const view = await statusService.viewStatus(statusId, req.user.id);
 
-      // Broadcast view via socket
+      // Emit view only to the status owner
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
-      if (io) {
-        io.emit("status:viewed", {
-          statusId,
-          view,
-        });
+      if (io && view.status) {
+        const ownerSocketId = onlineUsers.get(view.status.userId);
+        if (ownerSocketId) {
+          io.to(ownerSocketId).emit("status:viewed", {
+            statusId,
+            view,
+          });
+        }
       }
 
       res.status(200).json({
@@ -232,14 +244,17 @@ export class StatusController {
         emoji
       );
 
-      // Broadcast reaction via socket
+      // Emit reaction only to the status owner
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
-      if (io) {
-        io.emit("status:reaction", {
-          statusId,
-          reaction,
-        });
+      if (io && reaction.status) {
+        const ownerSocketId = onlineUsers.get(reaction.status.userId);
+        if (ownerSocketId) {
+          io.to(ownerSocketId).emit("status:reaction", {
+            statusId,
+            reaction,
+          });
+        }
       }
 
       res.status(200).json({
@@ -272,16 +287,19 @@ export class StatusController {
         return;
       }
 
-      await statusService.removeReaction(statusId, req.user.id);
+      const removedStatus = await statusService.removeReaction(statusId, req.user.id);
 
-      // Broadcast reaction removal via socket
+      // Emit reaction removal only to the status owner
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
-      if (io) {
-        io.emit("status:reaction:removed", {
-          statusId,
-          userId: req.user.id,
-        });
+      if (io && removedStatus) {
+        const ownerSocketId = onlineUsers.get(removedStatus.userId);
+        if (ownerSocketId) {
+          io.to(ownerSocketId).emit("status:reaction:removed", {
+            statusId,
+            userId: req.user.id,
+          });
+        }
       }
 
       res.status(200).json({
@@ -315,13 +333,17 @@ export class StatusController {
 
       const result = await statusService.deleteStatus(statusId, req.user.id);
 
-      // Broadcast deletion via socket
+      // Emit deletion only to contacts
       const { getIO } = await import("../utils/socket.js");
       const io = getIO();
       if (io) {
-        io.emit("status:deleted", {
-          statusId,
-        });
+        const contactIds = await statusService.getContactIds(req.user.id);
+        for (const contactId of contactIds) {
+          const socketId = onlineUsers.get(contactId);
+          if (socketId) {
+            io.to(socketId).emit("status:deleted", { statusId });
+          }
+        }
       }
 
       res.status(200).json({

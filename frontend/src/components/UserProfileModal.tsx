@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { authAPI, blockAPI } from "../apis/api";
+import { devError } from "../utils/devLog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -50,51 +51,37 @@ const UserProfileModal = ({
   const { user } = useAuth();
 
   useEffect(() => {
-    if (open && userId) {
-      fetchProfile();
-      checkBlockedStatus();
-    }
+    if (!open || !userId) return;
+    let cancelled = false;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [profileRes, blockedRes] = await Promise.all([
+          authAPI.getUserProfile(userId),
+          blockAPI.getBlockedUsers(),
+        ]);
+        if (cancelled) return;
+
+        if (profileRes.data.success && profileRes.data.data) {
+          setProfile(profileRes.data.data);
+        }
+        const blocked = blockedRes.data.data || [];
+        setIsBlocked(blocked.some((u: any) => u.id === userId));
+      } catch (error: any) {
+        if (cancelled) return;
+        const statusCode = error.response?.status;
+        if (statusCode === 404 || statusCode === 403) {
+          setTimeout(() => onClose(), 100);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => { cancelled = true; };
   }, [open, userId]);
-
-  const fetchProfile = async () => {
-    if (!userId) {
-      console.error("❌ No userId provided");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("🔍 Fetching profile for userId:", userId);
-
-      const response = await authAPI.getUserProfile(userId);
-      const { data } = response;
-
-      if (data.success && data.data) {
-        setProfile(data.data);
-      } else {
-        throw new Error(data.message || "Failed to fetch profile");
-      }
-    } catch (error: any) {
-      console.error("❌ Failed to fetch profile:", error);
-      const statusCode = error.response?.status;
-
-      if (statusCode === 404 || statusCode === 403) {
-        setTimeout(() => onClose(), 100);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkBlockedStatus = async () => {
-    try {
-      const { data } = await blockAPI.getBlockedUsers();
-      const blocked = data.data || [];
-      setIsBlocked(blocked.some((u: any) => u.id === userId));
-    } catch (error) {
-      console.error("Failed to check blocked status:", error);
-    }
-  };
 
   const handleBlock = async () => {
     try {
@@ -107,7 +94,7 @@ const UserProfileModal = ({
         setIsBlocked(true);
       }
     } catch (error: any) {
-      console.error("Failed to block/unblock user:", error);
+      devError("Failed to block/unblock user:", error);
       alert(error.response?.data?.message || "Failed to update block status");
     } finally {
       setBlocking(false);

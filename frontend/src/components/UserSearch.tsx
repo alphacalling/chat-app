@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../apis/api";
+import { devError } from "../utils/devLog";
 import type { Chat } from "./Sidebar";
 import { Search, X, MessageCircle, UserPlus, Sparkles } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -29,10 +30,10 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
 
     try {
       setLoading(true);
-      const { data } = await api.get(`/auth/users?search=${search}`);
+      const { data } = await api.get(`/auth/users?search=${encodeURIComponent(search)}`);
       setSearchResults(data.data || []);
     } catch (error) {
-      console.error("Error searching users", error);
+      devError("Error searching users", error);
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
       onChatAccessed(data.data || data);
       onClose();
     } catch (error) {
-      console.error("Error accessing chat", error);
+      devError("Error accessing chat", error);
     } finally {
       setLoadingChatId(null);
     }
@@ -125,7 +126,7 @@ const UserSearch = ({ onChatAccessed, onClose }: UserSearchProps) => {
                       <AvatarImage src={user.avatar} alt={user.name} />
                     ) : null}
                     <AvatarFallback className="bg-slate-600 text-white font-bold text-lg">
-                      {user.name[0].toUpperCase()}
+                      {(user.name?.[0] || "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">

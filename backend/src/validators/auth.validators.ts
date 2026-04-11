@@ -31,3 +31,16 @@ export const loginSchema = z.object({
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
+
+export const forgotPasswordSchema = z.object({
+  phone: z.string().min(10, "Phone must be at least 10 digits"),
+});
+
+export const resetPasswordSchema = z.object({
+  phone: z.string().min(10, "Phone must be at least 10 digits"),
+  totpToken: z.string().min(6, "TOTP token is required"),
+  newPassword: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(100, "Password must be at most 100 characters"),
+});

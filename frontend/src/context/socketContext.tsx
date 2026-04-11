@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState, useCallback } from "react";
 import io, { Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
-// import { API_BASE_URL } from "../configs/env";
+import { API_BASE_URL } from "../configs/env";
 
 interface SocketContextProps {
   socket: Socket | null;
@@ -39,9 +39,6 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
   useEffect(() => {
     if (!user || !user.id) {
-      console.log("❌ No user or user.id, skipping socket connection");
-
-      // Cleanup existing socket
       if (socket) {
         socket.disconnect();
         setSocket(null);
@@ -51,30 +48,18 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       return;
     }
 
-    console.log("🔌 Connecting socket for user:", user.id);
+    const socketUrl = API_BASE_URL || window.location.origin;
 
-    // Access token is in httpOnly cookie; send credentials so backend can verify
-    //for development localhost
-    // const newSocket = io(API_BASE_URL, {
-
-    //for production nginx proxy
-      const newSocket = io(window.location.origin, {
+    const newSocket = io(socketUrl, {
       withCredentials: true,
     });
 
     setSocket(newSocket);
 
-    // Connection established
     newSocket.on("connect", () => {
-      console.log("✅ Socket connected:", newSocket.id);
       setIsConnected(true);
-
-      // user.id exists before emitting
       if (user && user.id) {
-        console.log("📤 Emitting user:connect with userId:", user.id);
         newSocket.emit("user:connect", user.id);
-      } else {
-        console.error("❌ user.id is undefined!");
       }
 
       // Ask for browser notification permission once on successful connection
@@ -87,27 +72,23 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       }
     });
 
-    // Connection lost
-    newSocket.on("disconnect", (reason) => {
-      console.log("❌ Socket disconnected:", reason);
+    newSocket.on("disconnect", () => {
       setIsConnected(false);
     });
 
-    // Connection error
-    newSocket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error.message);
+    newSocket.on("connect_error", () => {
       setIsConnected(false);
     });
 
-    // User came online
+    newSocket.on("user:online-list", (userIds: string[]) => {
+      setOnlineUsers(new Set(userIds));
+    });
+
     newSocket.on("user:online", (userId: string) => {
-      console.log("👤 User online:", userId);
       setOnlineUsers((prev) => new Set(prev).add(userId));
     });
 
-    // User went offline
     newSocket.on("user:offline", ({ userId }) => {
-      console.log("👤 User offline:", userId);
       setOnlineUsers((prev) => {
         const newSet = new Set(prev);
         newSet.delete(userId);
@@ -115,65 +96,56 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       });
     });
 
-    // Error from server
-    newSocket.on("error", ({ message }) => {
-      console.error("⚠️ Socket error:", message);
+    newSocket.on("error", () => {
+      // server-side socket error — silent
     });
 
-    // Global listener to show browser notifications when app is in background
+    // Global listener: auto-deliver + browser notifications
     newSocket.on("message:new", (payload: any) => {
       try {
-        // Early returns for invalid conditions
-        if (typeof window === "undefined" || !("Notification" in window)) {
-          return;
-        }
-    
-        // Check if notification permission granted
-        if (Notification.permission !== "granted") {
-          return;
-        }
-    
-        // Get sender ID from various possible locations
         const senderIdFromPayload =
           payload?.senderId ?? payload?.sender?.id ?? null;
-        
-        // ✅ FIX 1: Don't notify if it's your own message
+
         const isFromSelf =
-          !!senderIdFromPayload && 
-          !!user?.id && 
+          !!senderIdFromPayload &&
+          !!user?.id &&
           senderIdFromPayload === user.id;
-        
-        if (isFromSelf) {
-          console.log("🔇 Skipping notification - own message");
+
+        // Auto-mark incoming messages as delivered (regardless of which chat is open)
+        if (!isFromSelf && payload?.id) {
+          newSocket.emit("message:delivered", payload.id);
+        }
+
+        // Browser notification when tab is hidden
+        if (
+          typeof window === "undefined" ||
+          !("Notification" in window) ||
+          Notification.permission !== "granted"
+        ) {
           return;
         }
-    
-        // ✅ FIX 2: Only notify if tab is hidden/minimized/background
+
+        if (isFromSelf) return;
+
         const isHidden =
           typeof document !== "undefined" &&
           document.visibilityState === "hidden";
-    
-        if (!isHidden) {
-          console.log("🔇 Skipping notification - tab is visible");
-          return;
-        }
-    
-        // ✅ All checks passed - show notification
+
+        if (!isHidden) return;
+
         const title =
-          payload?.sender?.name ?? 
-          payload?.chatName ?? 
+          payload?.sender?.name ??
+          payload?.chatName ??
           "New message on Chit-Chat";
-        
+
         const body =
           payload?.content && typeof payload.content === "string"
             ? payload.content
             : "You have a new message";
-    
-        console.log("🔔 Showing notification:", { title, body });
-        
+
         new Notification(title, { body });
-      } catch (error) {
-        console.error("❌ Notification error:", error);
+      } catch {
+        // notification error — silent
       }
     });
 
@@ -230,9 +202,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       );
     });
 
-    // Cleanup on unmount or user change
     return () => {
-      console.log("🧹 Cleaning up socket");
       newSocket.disconnect();
     };
   }, [user?.id]);
@@ -242,7 +212,6 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     (chatId: string) => {
       if (socket && isConnected) {
         socket.emit("chat:join", chatId);
-        console.log("📥 Joined chat:", chatId);
       }
     },
     [socket, isConnected],
@@ -252,7 +221,6 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     (chatId: string) => {
       if (socket && isConnected) {
         socket.emit("chat:leave", chatId);
-        console.log("📤 Left chat:", chatId);
       }
     },
     [socket, isConnected],

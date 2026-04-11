@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 import JoinInvitePage from "./components/JoinInvitePage";
 import { useAuth } from "./context/useAuth";
 
@@ -75,8 +76,6 @@ function App() {
     return <LoadingScreen />;
   }
 
-  console.log("🔄 App rendered - User:", user?.name || "null");
-
   return (
     <Routes>
       <Route
@@ -103,6 +102,11 @@ function App() {
       <Route
         path="/register"
         element={user ? <Navigate to="/chat" replace /> : <Register />}
+      />
+
+      <Route
+        path="/forgot-password"
+        element={user ? <Navigate to="/chat" replace /> : <ForgotPassword />}
       />
 
       <Route

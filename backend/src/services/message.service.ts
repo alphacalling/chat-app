@@ -16,12 +16,15 @@ export class MessageService {
             throw new Error("You can only delete your own messages");
         }
 
-        // Soft delete by updating content and adding deleted flag
-        const deletedMessage = await prisma.message.update({
+            const deletedMessage = await prisma.message.update({
             where: { id: messageId },
             data: {
                 content: "This message was deleted",
-                status: "SENT", // Keep original status for now
+                status: "SENT",
+                mediaUrl: null,
+                fileName: null,
+                fileSize: null,
+                mimeType: null,
             },
         });
 
@@ -135,9 +138,17 @@ export class MessageService {
         return updated;
     }
 
-    // Add reaction to message
     async addReaction(messageId: string, userId: string, emoji: string) {
-        // Check if reaction already exists
+        const message = await prisma.message.findUnique({
+            where: { id: messageId },
+        });
+        if (!message) throw new Error("Message not found");
+
+        const participant = await prisma.chatParticipant.findFirst({
+            where: { chatId: message.chatId, userId },
+        });
+        if (!participant) throw new Error("You are not a participant in this chat");
+
         const existing = await prisma.messageReaction.findUnique({
             where: {
                 messageId_userId: {
@@ -171,8 +182,17 @@ export class MessageService {
         });
     }
 
-    // Remove reaction from message
     async removeReaction(messageId: string, userId: string) {
+        const message = await prisma.message.findUnique({
+            where: { id: messageId },
+        });
+        if (!message) throw new Error("Message not found");
+
+        const participant = await prisma.chatParticipant.findFirst({
+            where: { chatId: message.chatId, userId },
+        });
+        if (!participant) throw new Error("You are not a participant in this chat");
+
         await prisma.messageReaction.deleteMany({
             where: {
                 messageId,
@@ -181,37 +201,29 @@ export class MessageService {
         });
     }
 
-    // Pin a message
     async pinMessage(messageId: string, chatId: string, userId: string) {
-        // Verify user is admin or member of the chat
         const participant = await prisma.chatParticipant.findFirst({
-            where: {
-                chatId,
-                userId,
-            },
+            where: { chatId, userId },
         });
-
         if (!participant) {
             throw new Error("You are not a participant in this chat");
         }
 
-        // Unpin previous pinned message in this chat
+        const message = await prisma.message.findFirst({
+            where: { id: messageId, chatId },
+        });
+        if (!message) {
+            throw new Error("Message not found in this chat");
+        }
+
         await prisma.message.updateMany({
-            where: {
-                chatId,
-                pinnedAt: { not: null },
-            },
-            data: {
-                pinnedAt: null,
-            },
+            where: { chatId, pinnedAt: { not: null } },
+            data: { pinnedAt: null },
         });
 
-        // Pin the new message
         const pinned = await prisma.message.update({
             where: { id: messageId },
-            data: {
-                pinnedAt: new Date(),
-            },
+            data: { pinnedAt: new Date() },
             include: {
                 sender: { select: { id: true, name: true, avatar: true } },
             },
@@ -220,31 +232,37 @@ export class MessageService {
         return pinned;
     }
 
-    // Unpin a message
     async unpinMessage(messageId: string, chatId: string, userId: string) {
         const participant = await prisma.chatParticipant.findFirst({
-            where: {
-                chatId,
-                userId,
-            },
+            where: { chatId, userId },
         });
-
         if (!participant) {
             throw new Error("You are not a participant in this chat");
         }
 
+        const message = await prisma.message.findFirst({
+            where: { id: messageId, chatId },
+        });
+        if (!message) {
+            throw new Error("Message not found in this chat");
+        }
+
         const unpinned = await prisma.message.update({
             where: { id: messageId },
-            data: {
-                pinnedAt: null,
-            },
+            data: { pinnedAt: null },
         });
 
         return unpinned;
     }
 
-    // Get pinned message for a chat
-    async getPinnedMessage(chatId: string) {
+    async getPinnedMessage(chatId: string, userId: string) {
+        const participant = await prisma.chatParticipant.findFirst({
+            where: { chatId, userId },
+        });
+        if (!participant) {
+            throw new Error("You are not a participant in this chat");
+        }
+
         return await prisma.message.findFirst({
             where: {
                 chatId,

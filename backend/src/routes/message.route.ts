@@ -2,6 +2,7 @@ import { Router } from "express";
 import { messageController } from "../controllers/message.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { fileUploadMiddleware } from "../middlewares/fileUpload.middleware.js";
+import { messageLimiter, uploadLimiter } from "../middlewares/security.js";
 
 const router = Router();
 
@@ -10,11 +11,11 @@ router.get("/get-messages/:chatId", authMiddleware, (req, res) =>
   messageController.getMessages(req, res)
 );
 
-router.post("/send-message", authMiddleware, (req, res) =>
+router.post("/send-message", authMiddleware, messageLimiter, (req, res) =>
   messageController.sendMessage(req, res)
 );
 
-router.post("/send-media", authMiddleware, fileUploadMiddleware, (req, res) =>
+router.post("/send-media", authMiddleware, uploadLimiter, fileUploadMiddleware, (req, res) =>
   messageController.sendMedia(req, res)
 );
 

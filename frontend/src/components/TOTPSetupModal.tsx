@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { totpAPI } from "../apis/api";
+import { devError } from "../utils/devLog";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,7 @@ const TOTPSetupModal = ({ open, onClose, onComplete }: TOTPSetupModalProps) => {
       setBackupCodes(data.data.backupCodes);
       setStep("qr");
     } catch (error) {
-      console.error("Failed to generate TOTP:", error);
+      devError("Failed to generate TOTP:", error);
       alert("Failed to generate TOTP");
     } finally {
       setLoading(false);
@@ -59,7 +60,7 @@ const TOTPSetupModal = ({ open, onClose, onComplete }: TOTPSetupModalProps) => {
       setStep("verify");
       onComplete();
     } catch (error: any) {
-      console.error("Failed to enable TOTP:", error);
+      devError("Failed to enable TOTP:", error);
       alert(error.response?.data?.message || "Failed to enable TOTP");
     } finally {
       setLoading(false);

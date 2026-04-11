@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../apis/api";
+import api, { getErrorMessage } from "../apis/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
@@ -48,14 +48,10 @@ const Register = () => {
         password: formData.password,
       });
 
-      console.log(
-        "Registered and logged in, tokens stored in httpOnly cookies",
-      );
       await refreshUser();
       setShowTOTP(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Registration failed");
-      setLoading(false);
+      setError(getErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }

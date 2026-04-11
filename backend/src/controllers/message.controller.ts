@@ -60,13 +60,16 @@ export class MessageController {
         }
       }
 
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const cursor = req.query.cursor as string | undefined;
+
       const messages = await prisma.message.findMany({
         where: { 
           chatId,
-          // Filter out messages from blocked users
           ...(blockedSenderIds.length > 0 && {
             senderId: { notIn: blockedSenderIds }
-          })
+          }),
+          ...(cursor && { createdAt: { lt: new Date(cursor) } }),
         },
         include: {
           sender: { select: { id: true, name: true, avatar: true } },
@@ -81,12 +84,16 @@ export class MessageController {
             },
           },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
       });
 
-      // Convert relative media URLs to full URLs
+      const hasMore = messages.length > limit;
+      const paginatedMessages = hasMore ? messages.slice(0, limit) : messages;
+      paginatedMessages.reverse();
+
       const baseUrl = req.protocol + "://" + req.get("host");
-      const messagesWithFullUrls = messages.map((msg) => {
+      const messagesWithFullUrls = paginatedMessages.map((msg) => {
         if (msg.mediaUrl && !msg.mediaUrl.startsWith("http")) {
           return {
             ...msg,
@@ -96,12 +103,18 @@ export class MessageController {
         return msg;
       });
 
-      // Mark messages as read when user opens chat
-      await messageService.markChatAsRead(chatId, req.user.id);
+      if (!cursor) {
+        await messageService.markChatAsRead(chatId, req.user.id);
+      }
 
       res.status(200).json({
         success: true,
+        message: "Messages fetched",
         data: messagesWithFullUrls,
+        hasMore,
+        nextCursor: hasMore
+          ? paginatedMessages[0]?.createdAt?.toISOString()
+          : null,
       } as ApiResponse);
     } catch (error) {
       const message =
@@ -142,6 +155,30 @@ export class MessageController {
           message: "You are not a participant in this chat",
         } as ApiResponse);
         return;
+      }
+
+      const chat = await prisma.chat.findUnique({
+        where: { id: chatId },
+        include: {
+          participants: {
+            where: { userId: { not: req.user.id } },
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (chat && !chat.isGroup && chat.participants.length > 0) {
+        const otherUserId = chat.participants[0].userId;
+        const blocked =
+          (await blockService.isBlocked(req.user.id, otherUserId)) ||
+          (await blockService.isBlocked(otherUserId, req.user.id));
+        if (blocked) {
+          res.status(403).json({
+            success: false,
+            message: "Cannot send message. User is blocked.",
+          } as ApiResponse);
+          return;
+        }
       }
 
       // Verify replyToId if provided
@@ -809,7 +846,7 @@ export class MessageController {
         return;
       }
 
-      const pinned = await messageService.getPinnedMessage(chatId);
+      const pinned = await messageService.getPinnedMessage(chatId, req.user.id);
 
       res.status(200).json({
         success: true,

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { statusAPI } from "../apis/api";
+import { devError } from "../utils/devLog";
 import { useAuth } from "../context/useAuth";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
@@ -58,7 +59,7 @@ const StatusSection = () => {
       const { data } = await statusAPI.getStatuses();
       setStatuses(data.data || []);
     } catch (error) {
-      console.error("Failed to fetch statuses:", error);
+      devError("Failed to fetch statuses:", error);
     }
   };
 
@@ -67,7 +68,7 @@ const StatusSection = () => {
       const { data } = await statusAPI.getMyStatuses();
       setMyStatuses(data.data || []);
     } catch (error) {
-      console.error("Failed to fetch my statuses:", error);
+      devError("Failed to fetch my statuses:", error);
     }
   };
 
@@ -91,7 +92,7 @@ const StatusSection = () => {
       setStatusType("TEXT");
       await Promise.all([fetchStatuses(), fetchMyStatuses()]);
     } catch (error) {
-      console.error("Failed to create status:", error);
+      devError("Failed to create status:", error);
       alert("Failed to create status");
     } finally {
       setCreating(false);
@@ -123,6 +124,14 @@ const StatusSection = () => {
     setShowMyStatusPicker(false);
   };
 
+  const handleViewerNext = useCallback(() => {
+    setViewerIndex((prev) => Math.min(prev + 1, viewerStatuses.length - 1));
+  }, [viewerStatuses.length]);
+
+  const handleViewerPrev = useCallback(() => {
+    setViewerIndex((prev) => Math.max(prev - 1, 0));
+  }, []);
+
   const openCreateFromPicker = () => {
     setShowMyStatusPicker(false);
     setShowCreate(true);
@@ -131,20 +140,24 @@ const StatusSection = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setStatusFile(file);
       if (file.type.startsWith("image/")) {
         setStatusType("IMAGE");
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
+        setPreviewUrl(URL.createObjectURL(file));
       } else if (file.type.startsWith("video/")) {
         setStatusType("VIDEO");
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
+        setPreviewUrl(URL.createObjectURL(file));
       }
     }
   };
 
   const clearFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setStatusFile(null);
     setPreviewUrl("");
     setStatusType("TEXT");
@@ -217,7 +230,7 @@ const StatusSection = () => {
                   >
                     <AvatarImage src={userStatus.user.avatar || undefined} />
                     <AvatarFallback className="bg-gray-500 text-white font-bold text-lg">
-                      {userStatus.user.name[0].toUpperCase()}
+                      {(userStatus.user.name?.[0] || "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   {hasUnviewed && (
@@ -420,12 +433,8 @@ const StatusSection = () => {
             fetchStatuses();
             fetchMyStatuses();
           }}
-          onNext={() =>
-            setViewerIndex((prev) =>
-              Math.min(prev + 1, viewerStatuses.length - 1),
-            )
-          }
-          onPrev={() => setViewerIndex((prev) => Math.max(prev - 1, 0))}
+          onNext={handleViewerNext}
+          onPrev={handleViewerPrev}
           onStatusUpdate={(updatedStatus) => {
             setViewerStatuses((prev) =>
               prev.map((s) => (s.id === updatedStatus.id ? updatedStatus : s)),

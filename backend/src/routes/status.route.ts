@@ -2,11 +2,12 @@ import { Router } from "express";
 import { statusController } from "../controllers/status.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { fileUploadMiddleware } from "../middlewares/fileUpload.middleware.js";
+import { statusLimiter, uploadLimiter } from "../middlewares/security.js";
 
 const router = Router();
 
 // Protected routes
-router.post("/create", authMiddleware, fileUploadMiddleware, (req, res) =>
+router.post("/create", authMiddleware, statusLimiter, uploadLimiter, fileUploadMiddleware, (req, res) =>
   statusController.createStatus(req, res)
 );
 

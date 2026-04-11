@@ -1,12 +1,14 @@
 import axios from "axios";
-// import { API_BASE_URL } from "../configs/env";
+import { API_BASE_URL } from "../configs/env";
 
 const api = axios.create({
   // for development localhost
   // baseURL: `${API_BASE_URL}/api`,
+  // withCredentials: true,
   
   // for production nginx proxy
-  baseURL: `/api`,
+  // baseURL: `/api`,
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -25,37 +27,88 @@ api.interceptors.request.use(
   },
 );
 
-// Handle 401 errors (token expired)
+const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password"];
+
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (v: any) => void; reject: (e: any) => void }> = [];
+
+function processQueue(error: any) {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(undefined);
+  });
+  refreshQueue = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const url = originalRequest?.url || "";
 
-    const isAuthCheck = originalRequest?.url?.includes?.("/me/profile");
-    if (isAuthCheck) {
+    const isAuthRoute = AUTH_ROUTES.some((r) => url.includes(r));
+    const isProfileCheck = url.includes("/me/profile");
+
+    if (isAuthRoute || isProfileCheck) {
       return Promise.reject(error);
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then(() => api(originalRequest));
+      }
+
+      isRefreshing = true;
+
       try {
-        // Refresh token is in httpOnly cookie
         await api.post("/auth/refresh");
-        // New access token is set in cookie by backend;
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+        processQueue(refreshError);
         if (!window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
     return Promise.reject(error);
   },
 );
+
+/**
+ * Extract a user-friendly error message from an Axios error.
+ */
+export function getErrorMessage(error: any, fallback = "Something went wrong. Please try again."): string {
+  if (error?.response?.status === 429) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  if (error?.response?.data?.error) {
+    return error.response.data.error;
+  }
+
+  if (error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
+    return "Unable to connect to the server. Please check your internet connection.";
+  }
+
+  if (error?.code === "ECONNABORTED") {
+    return "The request timed out. Please try again.";
+  }
+
+  return fallback;
+}
 
 //* AUTH APIs
 export const authAPI = {
@@ -83,16 +136,17 @@ export const authAPI = {
     email?: string;
   }) => api.patch("/me/update-profile", data),
 
-  searchUsers: (search: string) => api.get(`/auth/users?search=${search}`),
+  searchUsers: (search: string) => api.get(`/auth/users?search=${encodeURIComponent(search)}`),
+
+  forgotPassword: (phone: string) =>
+    api.post("/auth/forgot-password", { phone }),
+
+  resetPassword: (data: { phone: string; totpToken: string; newPassword: string }) =>
+    api.post("/auth/reset-password", data),
 
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    console.log("Frontend: Sending user avatar upload", {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-    });
     return api.post("/me/upload-avatar", formData);
   },
 };
@@ -174,12 +228,6 @@ export const groupAPI = {
   updateAvatar: (chatId: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    console.log("Frontend: Sending group avatar upload", {
-      chatId,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-    });
     return api.put(`/chat/update-avatar/${chatId}`, formData);
   },
 };
