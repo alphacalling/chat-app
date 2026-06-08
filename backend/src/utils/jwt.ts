@@ -34,3 +34,34 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
     return null;
   }
 }
+
+/** Short-lived token issued only after password is verified at login when TOTP is required. */
+export function generateTotpResetToken(userId: string, phone: string): string {
+  return jwt.sign(
+    { userId, phone, purpose: "totp-reset" },
+    process.env.JWT_ACCESS_SECRET!,
+    { expiresIn: "5m" },
+  );
+}
+
+export function verifyTotpResetToken(
+  token: string,
+): { userId: string; phone: string } | null {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as {
+      userId?: string;
+      phone?: string;
+      purpose?: string;
+    };
+    if (
+      payload.purpose !== "totp-reset" ||
+      !payload.userId ||
+      !payload.phone
+    ) {
+      return null;
+    }
+    return { userId: payload.userId, phone: payload.phone };
+  } catch {
+    return null;
+  }
+}

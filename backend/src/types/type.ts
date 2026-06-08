@@ -28,6 +28,7 @@ export interface ServerToClientEvents {
     messageId: string;
     chatId: string;
     deletedBy: string;
+    scope?: "everyone";
   }) => void;
   "group:created": (data: any) => void;
   "group:updated": (data: any) => void;
@@ -59,7 +60,11 @@ export interface ClientToServerEvents {
   "typing:stop": (chatId: string) => void;
   "chat:join": (chatId: string) => void;
   "chat:leave": (chatId: string) => void;
-  "message:delete": (data: { messageId: string; chatId: string }) => void;
+  "message:delete": (data: {
+    messageId: string;
+    chatId: string;
+    scope?: "me" | "everyone";
+  }) => void;
   "group:created": (data: any) => void;
   "group:updated": (data: any) => void;
   "group:user-added": (data: any) => void;

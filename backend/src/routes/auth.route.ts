@@ -24,6 +24,9 @@ router.post("/auth/forgot-password", authLimiter, (req, res) =>
 router.post("/auth/reset-password", authLimiter, (req, res) =>
   authController.resetPassword(req, res),
 );
+router.post("/auth/reset-totp", authLimiter, (req, res) =>
+  authController.resetTOTP(req, res),
+);
 
 // Protected routes
 router.post("/logout", authMiddleware, (req, res) =>

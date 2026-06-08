@@ -1,8 +1,17 @@
 import { prisma } from "../configs/database.js";
 
 export class MessageService {
-  //* Delete a message (soft delete)
-  async deleteMessage(messageId: string, userId: string) {
+  private async assertChatParticipant(chatId: string, userId: string) {
+    const participant = await prisma.chatParticipant.findFirst({
+      where: { chatId, userId },
+    });
+    if (!participant) {
+      throw new Error("You are not a participant in this chat");
+    }
+  }
+
+  //* Delete a message for the current user only (hide from their view)
+  async deleteMessageForMe(messageId: string, userId: string) {
     const message = await prisma.message.findUnique({
       where: { id: messageId },
     });
@@ -11,8 +20,33 @@ export class MessageService {
       throw new Error("Message not found");
     }
 
+    await this.assertChatParticipant(message.chatId, userId);
+
+    await prisma.messageHidden.upsert({
+      where: {
+        messageId_userId: { messageId, userId },
+      },
+      create: { messageId, userId },
+      update: {},
+    });
+
+    return { scope: "me" as const, messageId, chatId: message.chatId };
+  }
+
+  //* Delete a message for everyone (soft delete — sender only)
+  async deleteMessageForEveryone(messageId: string, userId: string) {
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    await this.assertChatParticipant(message.chatId, userId);
+
     if (message.senderId !== userId) {
-      throw new Error("You can only delete your own messages");
+      throw new Error("You can only delete your own messages for everyone");
     }
 
     const deletedMessage = await prisma.message.update({
@@ -27,7 +61,33 @@ export class MessageService {
       },
     });
 
-    return deletedMessage;
+    return {
+      scope: "everyone" as const,
+      message: deletedMessage,
+      chatId: message.chatId,
+    };
+  }
+
+  async deleteMessage(
+    messageId: string,
+    userId: string,
+    scope: "me" | "everyone",
+  ) {
+    if (scope === "me") {
+      return this.deleteMessageForMe(messageId, userId);
+    }
+    return this.deleteMessageForEveryone(messageId, userId);
+  }
+
+  async getHiddenMessageIds(userId: string, chatId: string): Promise<string[]> {
+    const hidden = await prisma.messageHidden.findMany({
+      where: {
+        userId,
+        message: { chatId },
+      },
+      select: { messageId: true },
+    });
+    return hidden.map((row) => row.messageId);
   }
 
   //* Mark all messages in a chat as read

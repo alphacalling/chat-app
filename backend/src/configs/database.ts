@@ -26,22 +26,34 @@ pool.on("connect", () => {
   logger.debug("New pool connection established");
 });
 
-// Prisma Client
 const adapter = new PrismaPg(pool);
 
-// Singleton pattern to prevent multiple instances in development (hot reload)
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
+// Prisma Client — recreate if hot-reload left a stale client without new models
+function createPrismaClient(): PrismaClient {
+  return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
 }
+
+const globalForPrisma = global as unknown as { prisma?: PrismaClient };
+
+function getPrismaClient(): PrismaClient {
+  const cached = globalForPrisma.prisma;
+  if (cached && "messageHidden" in cached) {
+    return cached;
+  }
+  if (cached) {
+    void cached.$disconnect().catch(() => {});
+  }
+  const client = createPrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+  return client;
+}
+
+export const prisma = getPrismaClient();
 
 //! Database Operations
 export async function connectDatabase(): Promise<void> {

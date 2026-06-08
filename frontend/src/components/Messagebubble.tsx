@@ -44,7 +44,8 @@ interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   chatId?: string;
-  onDelete?: () => void;
+  onDeleteForMe?: () => void;
+  onDeleteForEveryone?: () => void;
   onReply?: (message: Message) => void;
 }
 
@@ -52,7 +53,8 @@ const MessageBubble = ({
   message,
   isOwn,
   chatId,
-  onDelete,
+  onDeleteForMe,
+  onDeleteForEveryone,
   onReply,
 }: MessageBubbleProps) => {
   const { user: currentUser } = useAuth();
@@ -498,7 +500,8 @@ const MessageBubble = ({
         <MessageContextMenu
           x={contextMenuPos.x}
           y={contextMenuPos.y}
-          onDelete={onDelete}
+          onDeleteForMe={onDeleteForMe}
+          onDeleteForEveryone={isOwn ? onDeleteForEveryone : undefined}
           onReply={handleReply}
           onEdit={isOwn ? handleEdit : undefined}
           onReact={handleReact}

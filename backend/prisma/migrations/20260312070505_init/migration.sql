@@ -101,6 +101,16 @@ CREATE TABLE "MessageReaction" (
 );
 
 -- CreateTable
+CREATE TABLE "MessageHidden" (
+    "id" TEXT NOT NULL,
+    "messageId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MessageHidden_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "InviteLink" (
     "id" TEXT NOT NULL,
     "chatId" TEXT NOT NULL,
@@ -198,6 +208,15 @@ CREATE INDEX "MessageReaction_userId_idx" ON "MessageReaction"("userId");
 CREATE UNIQUE INDEX "MessageReaction_messageId_userId_key" ON "MessageReaction"("messageId", "userId");
 
 -- CreateIndex
+CREATE INDEX "MessageHidden_userId_idx" ON "MessageHidden"("userId");
+
+-- CreateIndex
+CREATE INDEX "MessageHidden_messageId_idx" ON "MessageHidden"("messageId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MessageHidden_messageId_userId_key" ON "MessageHidden"("messageId", "userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "InviteLink_code_key" ON "InviteLink"("code");
 
 -- CreateIndex
@@ -256,6 +275,12 @@ ALTER TABLE "MessageReaction" ADD CONSTRAINT "MessageReaction_messageId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "MessageReaction" ADD CONSTRAINT "MessageReaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MessageHidden" ADD CONSTRAINT "MessageHidden_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "Message"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MessageHidden" ADD CONSTRAINT "MessageHidden_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InviteLink" ADD CONSTRAINT "InviteLink_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat"("id") ON DELETE CASCADE ON UPDATE CASCADE;

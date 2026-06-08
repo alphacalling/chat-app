@@ -20,11 +20,12 @@ interface AuthContextProps {
     phone: string,
     password: string,
     totpToken?: string,
-  ) => Promise<{ requiresTOTP?: boolean; user?: any }>;
+  ) => Promise<{ requiresTOTP?: boolean; user?: any; totpResetToken?: string }>;
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (updated: Partial<User> | null) => void;
+  completeLogin: (user: User) => void;
 }
 
 interface AuthProviderProps {
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     phone: string,
     password: string,
     totpToken?: string,
-  ): Promise<{ requiresTOTP?: boolean; user?: any }> => {
+  ): Promise<{ requiresTOTP?: boolean; user?: any; totpResetToken?: string }> => {
     const response = await api.post("/auth/login", {
       phone,
       password,
@@ -78,7 +79,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     if (responseData.requiresTOTP) {
-      return { requiresTOTP: true, user: responseData.user };
+      const totpResetToken =
+        responseData.totpResetToken ??
+        response.data?.totpResetToken ??
+        null;
+      return {
+        requiresTOTP: true,
+        user: responseData.user,
+        totpResetToken,
+      };
     }
 
     const { user: userData } = responseData;
@@ -114,12 +123,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const completeLogin = (userData: User): void => {
+    setUser(userData);
+  };
+
   const updateUser = (updated: Partial<User> | null): void => {
     if (updated === null) {
       setUser(null);
       return;
     }
-    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+    setUser((prev) =>
+      prev ? { ...prev, ...updated } : (updated as User),
+    );
   };
 
   return (
@@ -132,6 +147,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         loading,
         refreshUser,
         updateUser,
+        completeLogin,
       }}
     >
       {children}
