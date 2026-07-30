@@ -1,6 +1,11 @@
 import { prisma } from "../configs/database.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
-import { generateTokens, verifyRefreshToken } from "../utils/jwt.js";
+import {
+  generateTokens,
+  verifyRefreshToken,
+  generateTotpResetToken,
+  verifyTotpResetToken,
+} from "../utils/jwt.js";
 import { encrypt, decrypt, isEncrypted } from "../utils/encryption.js";
 import { blockService } from "./block.service.js";
 import type {
@@ -66,7 +71,12 @@ export class AuthService {
   //* Login user
   async login(
     data: LoginDTO & { totpToken?: string },
-  ): Promise<{ user: SafeUser; tokens: AuthTokens; requiresTOTP?: boolean }> {
+  ): Promise<{
+    user: SafeUser;
+    tokens: AuthTokens;
+    requiresTOTP?: boolean;
+    totpResetToken?: string;
+  }> {
     const user = await prisma.user.findUnique({
       where: { phone: data.phone },
     });
@@ -92,7 +102,12 @@ export class AuthService {
           totpBackupCodes,
           ...safeUser
         } = user;
-        return { user: safeUser, tokens: {} as AuthTokens, requiresTOTP: true };
+        return {
+          user: safeUser,
+          tokens: {} as AuthTokens,
+          requiresTOTP: true,
+          totpResetToken: generateTotpResetToken(user.id, user.phone),
+        };
       }
 
       const { verifyTOTP, verifyBackupCode } = await import("../utils/totp.js");
@@ -338,6 +353,59 @@ export class AuthService {
       where: { id: user.id },
       data: updateData,
     });
+  }
+
+  //* Reset (disable) TOTP using a short-lived token issued only after
+  //  password verification at login when TOTP is required.
+  async resetTOTP(
+    totpResetToken: string,
+  ): Promise<{ user: SafeUser; tokens: AuthTokens }> {
+    const payload = verifyTotpResetToken(totpResetToken);
+    if (!payload) {
+      throw new Error("Invalid or expired reset token. Please sign in again.");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user || user.phone !== payload.phone) {
+      throw new Error("Invalid or expired reset token. Please sign in again.");
+    }
+
+    if (!user.totpEnabled) {
+      throw new Error(
+        "Two-Factor Authentication is not enabled on this account",
+      );
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        totpEnabled: false,
+        totpSecret: null,
+        totpBackupCodes: null,
+      },
+    });
+
+    const tokens = generateTokens({
+      userId: user.id,
+      phone: user.phone,
+    });
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        refreshToken: encrypt(tokens.refreshToken),
+        isOnline: true,
+        lastSeen: new Date(),
+      },
+    });
+
+    const { password, refreshToken, totpSecret, totpBackupCodes, ...safeUser } =
+      updated;
+
+    return { user: safeUser, tokens };
   }
 
   //* Update profile

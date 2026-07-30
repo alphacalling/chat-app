@@ -21,6 +21,8 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import { getSender } from "../utils/chatUtils";
 
+const MESSAGE_PAGE_SIZE = 25;
+
 interface Message {
   id: string;
   content: string | null;
@@ -97,6 +99,13 @@ const ChatWindow = ({
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const isLoadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
+  const activeChatIdRef = useRef<string | null>(null);
+  const messagesCacheRef = useRef<
+    Record<
+      string,
+      { messages: Message[]; hasMore: boolean; nextCursor: string | null }
+    >
+  >({});
 
   const scrollToBottom = (smooth: boolean) => {
     messagesEndRef.current?.scrollIntoView({
@@ -136,36 +145,64 @@ const ChatWindow = ({
   }, [messages]);
 
   useEffect(() => {
-    if (!selectedChat) return;
-    setMessages([]);
+    if (!selectedChat?.id) return;
+
+    const chatId = selectedChat.id;
+    activeChatIdRef.current = chatId;
     setPinnedMessage(null);
-    setHasMore(false);
-    setNextCursor(null);
+
+    const cached = messagesCacheRef.current[chatId];
+    if (cached) {
+      setMessages(cached.messages);
+      setHasMore(cached.hasMore);
+      setNextCursor(cached.nextCursor);
+      setLoading(false);
+    } else {
+      setMessages([]);
+      setHasMore(false);
+      setNextCursor(null);
+      setLoading(true);
+    }
+
     let cancelled = false;
 
     const fetchMessages = async () => {
       try {
-        setLoading(true);
-        const { data } = await messageAPI.getMessages(selectedChat.id);
-        if (cancelled) return;
-        setMessages(data.data || []);
-        setHasMore(data.hasMore || false);
-        setNextCursor(data.nextCursor || null);
+        const { data: body } = await messageAPI.getMessages(
+          chatId,
+          undefined,
+          MESSAGE_PAGE_SIZE,
+        );
+        if (cancelled || activeChatIdRef.current !== chatId) return;
 
-        try {
-          const pinnedData = await messageAPI.getPinnedMessage(selectedChat.id);
-          if (!cancelled && pinnedData.data) {
-            setPinnedMessage(pinnedData.data);
-          }
-        } catch (error) {
-          // No pinned message
-        }
+        const fetchedMessages = body.data || [];
+        const fetchedHasMore = body.hasMore || false;
+        const fetchedCursor = body.nextCursor || null;
+
+        messagesCacheRef.current[chatId] = {
+          messages: fetchedMessages,
+          hasMore: fetchedHasMore,
+          nextCursor: fetchedCursor,
+        };
+
+        setMessages(fetchedMessages);
+        setHasMore(fetchedHasMore);
+        setNextCursor(fetchedCursor);
+        setLoading(false);
+
+        messageAPI
+          .getPinnedMessage(chatId)
+          .then((pinnedRes) => {
+            if (!cancelled && activeChatIdRef.current === chatId && pinnedRes.data?.data) {
+              setPinnedMessage(pinnedRes.data.data);
+            }
+          })
+          .catch(() => {
+            // No pinned message
+          });
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && activeChatIdRef.current === chatId) {
           devError("Failed to fetch messages:", error);
-        }
-      } finally {
-        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -173,17 +210,26 @@ const ChatWindow = ({
 
     fetchMessages();
 
-    if (socket && isConnected) {
-      socket.emit("chat:join", selectedChat.id);
-    }
-
     return () => {
       cancelled = true;
-      if (socket && selectedChat.id) {
-        socket.emit("chat:leave", selectedChat.id);
-      }
     };
-  }, [selectedChat, socket, isConnected]);
+  }, [selectedChat?.id]);
+
+  useEffect(() => {
+    if (!selectedChat?.id || !socket || !isConnected) return;
+
+    socket.emit("chat:join", selectedChat.id);
+
+    return () => {
+      socket.emit("chat:leave", selectedChat.id);
+    };
+  }, [selectedChat?.id, socket, isConnected]);
+
+  useEffect(() => {
+    const chatId = selectedChat?.id;
+    if (!chatId || loading) return;
+    messagesCacheRef.current[chatId] = { messages, hasMore, nextCursor };
+  }, [selectedChat?.id, messages, hasMore, nextCursor, loading]);
 
   useEffect(() => {
     if (!selectedChat) return;
@@ -194,7 +240,7 @@ const ChatWindow = ({
   }, [onlineUsers, selectedChat, user?.id]);
 
   const loadOlderMessages = useCallback(async () => {
-    if (!selectedChat || !hasMore || !nextCursor || isLoadingOlderRef.current) return;
+    if (!selectedChat?.id || !hasMore || !nextCursor || isLoadingOlderRef.current) return;
 
     isLoadingOlderRef.current = true;
     setLoadingOlder(true);
@@ -203,31 +249,60 @@ const ChatWindow = ({
     prevScrollHeightRef.current = viewport?.scrollHeight || 0;
 
     try {
-      const { data } = await messageAPI.getMessages(selectedChat.id, nextCursor);
-      setMessages((prev) => [...(data.data || []), ...prev]);
-      setHasMore(data.hasMore || false);
-      setNextCursor(data.nextCursor || null);
+      const { data: body } = await messageAPI.getMessages(
+        selectedChat.id,
+        nextCursor,
+        MESSAGE_PAGE_SIZE,
+      );
+      setMessages((prev) => {
+        const merged = [...(body.data || []), ...prev];
+        messagesCacheRef.current[selectedChat.id] = {
+          messages: merged,
+          hasMore: body.hasMore || false,
+          nextCursor: body.nextCursor || null,
+        };
+        return merged;
+      });
+      setHasMore(body.hasMore || false);
+      setNextCursor(body.nextCursor || null);
     } catch (error) {
       devError("Failed to load older messages:", error);
       isLoadingOlderRef.current = false;
     } finally {
       setLoadingOlder(false);
     }
-  }, [selectedChat, hasMore, nextCursor]);
+  }, [selectedChat?.id, hasMore, nextCursor]);
+
+  const shouldLoadOlder = useCallback(
+    (viewport: HTMLDivElement) => {
+      if (!hasMore || isLoadingOlderRef.current) return false;
+
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      const isNearBottom = distanceFromBottom < 80;
+      const isNearTop = viewport.scrollTop < 100;
+
+      // Avoid auto-loading when content is short and the viewport is already at the bottom.
+      return isNearTop && !isNearBottom;
+    },
+    [hasMore],
+  );
 
   useEffect(() => {
+    if (loading) return;
+
     const viewport = scrollViewportRef.current;
     if (!viewport) return;
 
     const handleScroll = () => {
-      if (viewport.scrollTop < 100 && hasMore && !isLoadingOlderRef.current) {
+      if (shouldLoadOlder(viewport)) {
         loadOlderMessages();
       }
     };
 
     viewport.addEventListener("scroll", handleScroll);
     return () => viewport.removeEventListener("scroll", handleScroll);
-  }, [hasMore, loadOlderMessages]);
+  }, [hasMore, loadOlderMessages, loading, shouldLoadOlder]);
 
   useEffect(() => {
     if (!socket) return;
@@ -415,16 +490,27 @@ const ChatWindow = ({
     }
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteMessage = async (
+    messageId: string,
+    scope: "me" | "everyone",
+  ) => {
     try {
-      await messageAPI.deleteMessage(messageId);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, content: "This message was deleted", status: "DELETED" }
-            : msg,
-        ),
-      );
+      await messageAPI.deleteMessage(messageId, scope);
+      if (scope === "me") {
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  content: "This message was deleted",
+                  status: "DELETED",
+                }
+              : msg,
+          ),
+        );
+      }
     } catch (error) {
       devError("Failed to delete message:", error);
     }
@@ -624,7 +710,7 @@ const ChatWindow = ({
       {/* Messages Area */}
       <ScrollArea viewportRef={scrollViewportRef} className="flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBmMGYwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] bg-stone-100/30">
         <div className="p-4 space-y-1">
-          {loading ? (
+          {loading && messages.length === 0 ? (
             <div className="flex justify-center items-center h-full py-12">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
@@ -655,6 +741,15 @@ const ChatWindow = ({
                   <div className="animate-spin h-6 w-6 border-3 border-teal-600 border-t-transparent rounded-full"></div>
                 </div>
               )}
+              {hasMore && !loadingOlder && (
+                <button
+                  type="button"
+                  onClick={loadOlderMessages}
+                  className="w-full text-center text-xs text-stone-400 py-2 hover:text-teal-600 transition-colors"
+                >
+                  Load older messages
+                </button>
+              )}
               {messages.map((message, index) => {
               const isOwn = message.senderId === user?.id;
               return (
@@ -664,7 +759,7 @@ const ChatWindow = ({
                   className={`flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ${
                     isOwn ? "justify-end" : "justify-start"
                   }`}
-                  style={{ animationDelay: `${index * 20}ms` }}
+                  style={{ animationDelay: `${Math.min(index, 8) * 20}ms` }}
                 >
                   <div
                     className={`max-w-[75%] ${isOwn ? "ml-auto" : "mr-auto"}`}
@@ -673,7 +768,14 @@ const ChatWindow = ({
                       message={message}
                       isOwn={isOwn}
                       chatId={selectedChat.id}
-                      onDelete={() => handleDeleteMessage(message.id)}
+                      onDeleteForMe={() =>
+                        handleDeleteMessage(message.id, "me")
+                      }
+                      onDeleteForEveryone={
+                        isOwn
+                          ? () => handleDeleteMessage(message.id, "everyone")
+                          : undefined
+                      }
                       onReply={handleReply}
                     />
                   </div>

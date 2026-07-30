@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface MessageContextMenuProps {
   x: number;
   y: number;
-  onDelete?: () => void;
+  onDeleteForMe?: () => void;
+  onDeleteForEveryone?: () => void;
   onReply?: () => void;
   onEdit?: () => void;
   onReact?: () => void;
@@ -17,7 +18,8 @@ interface MessageContextMenuProps {
 const MessageContextMenu = ({
   x,
   y,
-  onDelete,
+  onDeleteForMe,
+  onDeleteForEveryone,
   onReply,
   onEdit,
   onReact,
@@ -73,18 +75,28 @@ const MessageContextMenu = ({
     },
     {
       icon: Trash2,
-      label: "Delete",
-      onClick: onDelete,
-      show: isOwn,
+      label: "Delete for me",
+      onClick: onDeleteForMe,
+      show: Boolean(onDeleteForMe),
       danger: true,
       color: "text-red-600",
       hoverBg: "hover:bg-red-50 dark:hover:bg-red-900/20",
       iconBg:
         "bg-red-50 dark:bg-red-900/30 group-hover:bg-red-100 dark:group-hover:bg-red-800/40",
     },
+    {
+      icon: Trash2,
+      label: "Delete for everyone",
+      onClick: onDeleteForEveryone,
+      show: isOwn && Boolean(onDeleteForEveryone),
+      danger: true,
+      color: "text-red-700",
+      hoverBg: "hover:bg-red-50 dark:hover:bg-red-900/20",
+      iconBg:
+        "bg-red-50 dark:bg-red-900/30 group-hover:bg-red-100 dark:group-hover:bg-red-800/40",
+    },
   ].filter((item) => item.show && item.onClick);
 
-  // Calculate safe position after mount
   const calculatePosition = useCallback(() => {
     if (!menuRef.current) return;
 
@@ -99,7 +111,6 @@ const MessageContextMenu = ({
     let newX = x;
     let newY = y;
 
-    // Horizontal bounds
     if (newX + menuWidth + padding > vw) {
       newX = vw - menuWidth - padding;
     }
@@ -107,7 +118,6 @@ const MessageContextMenu = ({
       newX = padding;
     }
 
-    // Vertical bounds
     if (newY + menuHeight + padding > vh) {
       newY = vh - menuHeight - padding;
     }
@@ -120,11 +130,9 @@ const MessageContextMenu = ({
   }, [x, y]);
 
   useEffect(() => {
-    // Small delay to let menu render and get dimensions
     requestAnimationFrame(calculatePosition);
   }, [calculatePosition]);
 
-  // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -133,14 +141,12 @@ const MessageContextMenu = ({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  // Close on scroll
   useEffect(() => {
     const handleScroll = () => onClose();
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [onClose]);
 
-  // Close on resize
   useEffect(() => {
     const handleResize = () => onClose();
     window.addEventListener("resize", handleResize);
@@ -149,7 +155,6 @@ const MessageContextMenu = ({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-40"
         onClick={onClose}
@@ -159,7 +164,6 @@ const MessageContextMenu = ({
         }}
       />
 
-      {/* Menu */}
       <div
         ref={menuRef}
         role="menu"
@@ -170,7 +174,7 @@ const MessageContextMenu = ({
     rounded-xl shadow-xl 
     dark:shadow-black/40
     py-1 
-    min-w-[160px] max-w-[200px]
+    min-w-[160px] max-w-[220px]
     ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}
   `}
         style={{
@@ -178,13 +182,12 @@ const MessageContextMenu = ({
           top: `${position.y}px`,
         }}
       >
-        {/* Menu Items */}
         {menuItems.map((item, index) => {
           const Icon = item.icon;
           const isBeforeDanger = !item.danger && menuItems[index + 1]?.danger;
 
           return (
-            <div key={index}>
+            <div key={`${item.label}-${index}`}>
               <button
                 role="menuitem"
                 onClick={() => {
@@ -209,7 +212,6 @@ const MessageContextMenu = ({
                 <span className="font-medium truncate">{item.label}</span>
               </button>
 
-              {/* Separator before danger zone */}
               {isBeforeDanger && (
                 <div className="my-0.5 mx-2 border-t border-gray-100 dark:border-gray-700" />
               )}
@@ -217,7 +219,6 @@ const MessageContextMenu = ({
           );
         })}
 
-        {/* Cancel Separator + Button */}
         <div className="my-0.5 mx-2.5 border-t border-gray-100 dark:border-gray-700" />
         <button
           role="menuitem"

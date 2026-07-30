@@ -34,39 +34,44 @@ export class MessageController {
         return;
       }
 
-      // Get chat to check if it's 1-on-1 and get other user
-      const chat = await prisma.chat.findUnique({
-        where: { id: chatId },
-        include: {
-          participants: {
-            where: { userId: { not: req.user.id } },
-            select: { userId: true },
+      const limit = Math.min(parseInt(req.query.limit as string) || 25, 100);
+      const cursor = req.query.cursor as string | undefined;
+
+      const [chat, hiddenMessageIds] = await Promise.all([
+        prisma.chat.findUnique({
+          where: { id: chatId },
+          include: {
+            participants: {
+              where: { userId: { not: req.user.id } },
+              select: { userId: true },
+            },
           },
-        },
-      });
+        }),
+        messageService
+          .getHiddenMessageIds(req.user.id, chatId)
+          .catch(() => [] as string[]),
+      ]);
 
       // For 1-on-1 chats, filter out messages if user is blocked
       let blockedSenderIds: string[] = [];
       if (chat && !chat.isGroup && chat.participants.length > 0) {
         const otherUserId = chat.participants[0].userId;
 
-        // Check if current user blocked the other user OR other user blocked current user
         const isBlocked =
           (await blockService.isBlocked(req.user.id, otherUserId)) ||
           (await blockService.isBlocked(otherUserId, req.user.id));
 
         if (isBlocked) {
-          // If blocked, don't show messages from the blocked user
           blockedSenderIds = [otherUserId];
         }
       }
 
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      const cursor = req.query.cursor as string | undefined;
-
       const messages = await prisma.message.findMany({
         where: {
           chatId,
+          ...(hiddenMessageIds.length > 0 && {
+            id: { notIn: hiddenMessageIds },
+          }),
           ...(blockedSenderIds.length > 0 && {
             senderId: { notIn: blockedSenderIds },
           }),
@@ -105,7 +110,7 @@ export class MessageController {
       });
 
       if (!cursor) {
-        await messageService.markChatAsRead(chatId, req.user.id);
+        void messageService.markChatAsRead(chatId, req.user.id);
       }
 
       res.status(200).json({
@@ -446,6 +451,17 @@ export class MessageController {
       }
 
       const { messageId } = req.params;
+      const scopeParam = (req.query.scope as string) || "everyone";
+
+      if (scopeParam !== "me" && scopeParam !== "everyone") {
+        res.status(400).json({
+          success: false,
+          message: "Invalid scope. Use 'me' or 'everyone'.",
+        } as ApiResponse);
+        return;
+      }
+
+      const scope = scopeParam as "me" | "everyone";
 
       if (!messageId) {
         res.status(400).json({
@@ -468,26 +484,32 @@ export class MessageController {
         return;
       }
 
-      const deletedMessage = await messageService.deleteMessage(
+      const result = await messageService.deleteMessage(
         messageId,
         req.user.id,
+        scope,
       );
 
-      // Broadcast deletion via socket
-      const { getIO } = await import("../utils/socket.js");
-      const io = getIO();
-      if (io) {
-        io.to(`chat:${message.chatId}`).emit("message:deleted", {
-          messageId,
-          chatId: message.chatId,
-          deletedBy: req.user.id,
-        });
+      if (result.scope === "everyone") {
+        const { getIO } = await import("../utils/socket.js");
+        const io = getIO();
+        if (io) {
+          io.to(`chat:${result.chatId}`).emit("message:deleted", {
+            messageId,
+            chatId: result.chatId,
+            deletedBy: req.user.id,
+            scope: "everyone",
+          });
+        }
       }
 
       res.status(200).json({
         success: true,
-        message: "Message deleted",
-        data: deletedMessage,
+        message:
+          scope === "me"
+            ? "Message deleted for you"
+            : "Message deleted for everyone",
+        data: result.scope === "everyone" ? result.message : { messageId, scope: "me" },
       } as ApiResponse);
     } catch (error) {
       const message =

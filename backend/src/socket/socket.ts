@@ -6,6 +6,7 @@ import type {
 } from "../types/type.js";
 import { prisma } from "../configs/database.js";
 import { blockService } from "../services/block.service.js";
+import { messageService } from "../services/message.service.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 import { devLog, devError } from "../utils/devLog.js";
 
@@ -466,7 +467,7 @@ export function setupSocket(io: TypedServer): void {
     // ============================================
     socket.on("message:delete", async (data) => {
       try {
-        const { messageId, chatId } = data;
+        const { messageId, chatId, scope = "everyone" } = data;
         const userId = socket.data.userId;
 
         if (!userId) {
@@ -474,51 +475,42 @@ export function setupSocket(io: TypedServer): void {
           return;
         }
 
-        // Verify message exists and user is the sender
+        if (scope !== "me" && scope !== "everyone") {
+          socket.emit("error", { message: "Invalid delete scope" });
+          return;
+        }
+
         const message = await prisma.message.findUnique({
           where: { id: messageId },
         });
 
-        if (!message) {
-          socket.emit("error", { message: "Message not found" });
-          return;
-        }
-
-        if (message.senderId !== userId) {
-          socket.emit("error", {
-            message: "You can only delete your own messages",
-          });
-          return;
-        }
-
-        if (message.chatId !== chatId) {
+        if (!message || message.chatId !== chatId) {
           socket.emit("error", { message: "Message not found in this chat" });
           return;
         }
 
-        await prisma.message.update({
-          where: { id: messageId },
-          data: {
-            content: "This message was deleted",
-            status: "SENT",
-            mediaUrl: null,
-            fileName: null,
-            fileSize: null,
-            mimeType: null,
-          },
-        });
-
-        // Broadcast to all in chat room
-        io.to(`chat:${chatId}`).emit("message:deleted", {
+        const result = await messageService.deleteMessage(
           messageId,
-          chatId,
-          deletedBy: userId,
-        });
+          userId,
+          scope,
+        );
 
-        devLog(`🗑️ Message ${messageId} deleted in chat:${chatId}`);
+        if (result.scope === "everyone") {
+          io.to(`chat:${chatId}`).emit("message:deleted", {
+            messageId,
+            chatId,
+            deletedBy: userId,
+            scope: "everyone",
+          });
+          devLog(`🗑️ Message ${messageId} deleted for everyone in chat:${chatId}`);
+        } else {
+          devLog(`🗑️ Message ${messageId} hidden for user ${userId}`);
+        }
       } catch (error) {
         devError("Error deleting message:", error);
-        socket.emit("error", { message: "Failed to delete message" });
+        const message =
+          error instanceof Error ? error.message : "Failed to delete message";
+        socket.emit("error", { message });
       }
     });
 

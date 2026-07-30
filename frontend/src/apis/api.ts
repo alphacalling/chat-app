@@ -27,7 +27,7 @@ api.interceptors.request.use(
   },
 );
 
-const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password"];
+const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password", "/auth/reset-totp"];
 
 let isRefreshing = false;
 let refreshQueue: Array<{ resolve: (v: any) => void; reject: (e: any) => void }> = [];
@@ -144,6 +144,9 @@ export const authAPI = {
   resetPassword: (data: { phone: string; totpToken: string; newPassword: string }) =>
     api.post("/auth/reset-password", data),
 
+  resetTOTP: (data: { totpResetToken: string }) =>
+    api.post("/auth/reset-totp", data),
+
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -194,8 +197,8 @@ export const messageAPI = {
     return api.post("/message/send-media", formData);
   },
 
-  deleteMessage: (messageId: string) =>
-    api.delete(`/message/delete-message/${messageId}`),
+  deleteMessage: (messageId: string, scope: "me" | "everyone" = "everyone") =>
+    api.delete(`/message/delete-message/${messageId}?scope=${scope}`),
 
   markChatAsRead: (chatId: string) => api.put(`/message/mark-read/${chatId}`),
 

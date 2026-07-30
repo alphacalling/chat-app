@@ -6,6 +6,7 @@ import {
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  resetTotpSchema,
 } from "../validators/auth.validators.js";
 import type { AuthRequest, ApiResponse } from "../types/type.js";
 import { prisma } from "../configs/database.js";
@@ -84,7 +85,11 @@ export class AuthController {
         res.status(200).json({
           success: true,
           message: "TOTP required",
-          data: { user: result.user, requiresTOTP: true },
+          data: {
+            user: result.user,
+            requiresTOTP: true,
+            totpResetToken: result.totpResetToken,
+          },
         } as ApiResponse);
         return;
       }
@@ -178,6 +183,54 @@ export class AuthController {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Password reset failed";
+      res.status(400).json({
+        success: false,
+        message,
+      } as ApiResponse);
+    }
+  }
+
+  //* reset TOTP — requires short-lived token from login (password already verified)
+  async resetTOTP(req: Request, res: Response): Promise<void> {
+    try {
+      const validationResult = resetTotpSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: validationResult.error.issues[0].message,
+        } as ApiResponse);
+        return;
+      }
+
+      const { totpResetToken } = validationResult.data;
+      const result = await authService.resetTOTP(totpResetToken);
+
+      res.cookie("accessToken", result.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000,
+        path: "/",
+      });
+
+      res.cookie("refreshToken", result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Two-Factor Authentication has been reset.",
+        data: { user: result.user },
+      } as ApiResponse);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to reset 2FA";
       res.status(400).json({
         success: false,
         message,

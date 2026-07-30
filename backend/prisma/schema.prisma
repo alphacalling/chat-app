@@ -39,6 +39,7 @@ model User {
   statusViews     StatusView[]
   statusReactions StatusReaction[]
   messageReactions MessageReaction[]
+  hiddenMessages  MessageHidden[]
 
   @@index([phone])
   @@index([email])
@@ -103,6 +104,7 @@ model Message {
   replies   Message[] @relation("Replies")
   
   reactions MessageReaction[]
+  hiddenFor MessageHidden[]
 
   @@index([chatId, createdAt(sort: Desc)])
   @@index([senderId])
@@ -126,6 +128,20 @@ enum MessageStatus {
   SENT
   DELIVERED
   READ
+}
+
+model MessageHidden {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@index([messageId])
 }
 
 model BlockedUser {
