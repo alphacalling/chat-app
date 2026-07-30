@@ -87,7 +87,7 @@ export class MessageService {
       },
       select: { messageId: true },
     });
-    return hidden.map((row) => row.messageId);
+    return hidden.map((row: { messageId: string }) => row.messageId);
   }
 
   //* Mark all messages in a chat as read
